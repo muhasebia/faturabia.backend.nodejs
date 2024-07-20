@@ -16,9 +16,11 @@ async function connectDB() {
 const start = async () => {
     try {
         await connectDB();
-        app.listen(port);
+        await app.listen(port);
         if(env.development){
             console.log(`🚀 Server running at http://localhost:${port}`);
+        }else if(env.production){
+            console.log(`🚀 Server running at http://faturabia.muhasebia.com:${port}`);
         }
     } catch (error) {
         console.error(`❌ Error starting server: ${error.message}`);
