@@ -1,7 +1,7 @@
 import express from 'express';
 import verifyToken from '../middlewares/authMiddleware.js'
 import checkUser from '../middlewares/checkUser.js'
-import {createCustomer, updateCustomer, getCustomer, getCustomers, deleteCustomer } from '../Controllers/customers.js';
+import {createCustomer, updateCustomer, getCustomer, getCustomers, deleteCustomer } from '../controllers/customers.js';
 
 const router = express.Router();
 

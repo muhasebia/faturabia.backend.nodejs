@@ -1,5 +1,5 @@
-import Customer from "../Models/Customer.js";
-import User from "../Models/User.js";
+import Customer from "../models/Customer.js";
+import User from "../models/User.js";
 import mongoose from "mongoose";
 
 

@@ -1,5 +1,5 @@
-import Product from '../Models/Product.js';
-import User from '../Models/User.js';
+import Product from '../models/Product.js';
+import User from '../models/User.js';
 import mongoose from 'mongoose';
 
 async function createProduct(req, res) {
