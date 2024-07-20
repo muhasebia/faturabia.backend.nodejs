@@ -1,33 +1,13 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import User from "../Models/User.js";
 import { secret_key } from "../config/env/index.js";
 
 async function register(req, res) {
   try {
-    const {
-      fullName,
-      email,
-      password,
-      bankName,
-      IBAN,
-      taxAdministiration,
-      title,
-      mersisNumber,
-      registirationNumber,
-      street,
-      apartmentName,
-      doorNumber,
-      neighborhood,
-      town,
-      city,
-      postCode,
-      country,
-      phone,
-      fax,
-      website,
-      businnesCenter,
-    } = req.body;
+    const userBody = req.body;
+    const { email, password } = userBody;
+
     const existingUser = await User.findOne({ email })
     if (existingUser) {
       return res.status(400).json({ error: 'Kullanıcı zaten mevcut' })
@@ -56,32 +36,8 @@ async function register(req, res) {
         .json({ error: "Şifreniz en az bir rakam içermelidir" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({
-      fullName,
-      email,
-      password: hashedPassword,
-      bankName,
-      IBAN,
-      taxAdministiration,
-      title,
-      mersisNumber,
-      registirationNumber,
-      street,
-      apartmentName,
-      doorNumber,
-      neighborhood,
-      town,
-      city,
-      postCode,
-      country,
-      phone,
-      fax,
-      website,
-      businnesCenter,
-    });
-
+    const user = new User(userBody = { ...userBody, password: hashedPassword });
     
-
     await user.save();
     res.status(201).send("Kullanıcı başarıyla oluşturuldu");
   } catch (error) {
@@ -129,11 +85,12 @@ async function login(req, res) {
 
 async function updateUser(req, res) {
   try {
-    const userId = req.body.userId;
-    const existingUser = await User.findById(userId);
+    const userId = req.userId
+
+    const existingUser = await User.findById(userId)
 
     if (!existingUser) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı'});
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' })
     }
 
     const fields = [
@@ -201,4 +158,23 @@ async function updateUser(req, res) {
 }
 
 
-export { register, login, updateUser }
+async function getUser(req, res) {
+  try {
+    const userId = req.userId
+
+    const user = await User.findById(userId).select('-password')
+
+    if (!user) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' })
+    }
+
+    res.status(200).json(user)
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: 'Kullanıcı bilgileri alınırken bir hata oluştu.' })
+  }
+}
+
+
+export { register, login, updateUser, getUser }
