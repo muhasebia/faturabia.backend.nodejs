@@ -36,7 +36,7 @@ async function register(req, res) {
         .json({ error: "Şifreniz en az bir rakam içermelidir" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User(userBody = { ...userBody, password: hashedPassword });
+    const user = new User({ ...userBody, password: hashedPassword });
     
     await user.save();
     res.status(201).send("Kullanıcı başarıyla oluşturuldu");
