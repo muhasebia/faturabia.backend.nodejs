@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import User from "../Models/User.js";
+import User from "../models/User.js";
 import { secret_key } from "../config/env/index.js";
 
 async function register(req, res) {
