@@ -35,7 +35,8 @@ async function getCustomers(req, res) {
       path: "customers",
       options: {
         limit: parseInt(pageSize),
-        skip: parseInt(skip),
+        skip,
+        sort: { _id: -1 }
       },
     });
 

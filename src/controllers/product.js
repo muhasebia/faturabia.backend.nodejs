@@ -3,19 +3,19 @@ import User from '../models/User.js';
 import mongoose from 'mongoose';
 
 async function createProduct(req, res) {
-    try {
-
-        const user = req.user;
-        const newProduct = new Product(req.body);
-        await newProduct.save();
-        user.products.push(newProduct);
-        await user.save();
-        res.status(201).json({ message: "Product created successfully" });
-
-    } catch(error) {
-        res.status(500).json({ error: "An error occurred", message: error.message });
-    }
+  try {
+      const user = req.user;
+      const newProduct = new Product(req.body);
+      await newProduct.save();
+      user.products.push(newProduct._id);
+      await user.save();
+      res.status(201).json({ message: "Product created successfully" });
+  } catch (error) {
+      res.status(500).json({ error: "An error occurred", message: error.message });
+  }
 }
+
+
 
 async function updateProduct(req, res) {
     try {
@@ -68,38 +68,40 @@ async function getProduct(req, res) {
 }
 
 async function getProducts(req, res) {
-    try {
-      const user = req.user;
-      const count = user.products.length;
-  
-      //sayfa numarası ve sayfa başına ürün sayısını al
-      const {page = 1, pageSize = 10} = req.query;
-      const skip = (page - 1) * pageSize;
-  
-      const products = await User.findById(user._id).populate({
-        path: 'products',
-        options: {
-          limit: parseInt(pageSize),
-          skip,
-        },
-      });
-  
-      const response = {
-        data: products.products,
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        length: count,
-      };
-  
-      res.status(200).json(response);
-      
-    } catch (error) {
-      res.status(500).json({
-        error: 'Ürünler getirilirken bir hata oluştu.',
-        message: error.message,
-      });
-    }
+  try {
+    const user = req.user;
+    const count = user.products.length;
+
+    // Sayfa numarası ve sayfa başına ürün sayısını al
+    const { page = 1, pageSize = 10 } = req.query;
+    const skip = (page - 1) * pageSize;
+
+    const products = await User.findById(user._id).populate({
+      path: 'products',
+      options: {
+        limit: parseInt(pageSize),
+        skip,
+        sort: { _id: -1 }  // Ürünleri ID'ye göre ters sıralayarak en son ekleneni başa alır
+      },
+    });
+
+    const response = {
+      data: products.products,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      length: count,
+    };
+
+    res.status(200).json(response);
+    
+  } catch (error) {
+    res.status(500).json({
+      error: 'Ürünler getirilirken bir hata oluştu.',
+      message: error.message,
+    });
+  }
 }
+
 
 export{      
     createProduct,
