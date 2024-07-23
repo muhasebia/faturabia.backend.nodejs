@@ -16,7 +16,7 @@ async function connectDB() {
 const start = async () => {
     try {
         await connectDB();
-        await app.listen(port);
+        app.listen(port);
         if(env.development){
             console.log(`🚀 Server running at http://localhost:${port}`);
         }else if(env.production){
