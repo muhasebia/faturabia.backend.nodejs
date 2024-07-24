@@ -11,6 +11,12 @@ router.use('/auth', authRouter)
 router.use('/customer', customerRouter)
 router.use('/product', productRouter)
 router.use('/invoice', invoiceRouter)
+router.get('/', (req, res) => {
+    res.json({
+        message: 'API - 👋🌎🌍🌏'
+    })
+}
+)
 
 
 export default router;
