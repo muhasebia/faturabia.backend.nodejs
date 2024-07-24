@@ -1,6 +1,6 @@
-import Invoice from '../models/Invoice';
+import Invoice from '../models/Invoice.js';
 import mongoose from 'mongoose';
-import User from '../models/User';
+import User from '../models/User.js';
 
 async function createInvoice(req, res) {
   try {
