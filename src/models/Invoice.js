@@ -14,6 +14,8 @@ const invoiceScheme = new mongoose.Schema({
             unit: {type: String, required: true},
         }
     ],
+    totalPrice: {type: Number, required: true},
+    totalPriceWithTax: {type: Number, required: true},
     exceptional: {type: String},
     currency: {type: String, default: "₺"},
     exchange: {type: Number,
