@@ -25,7 +25,7 @@ const UserScheme = new mongoose.Schema({
   businnesCenter: {type: String},
   customers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Customer' }],
   products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
-  invoice: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Invoice' }],
+  invoices: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Invoice' }],
   createdAt: {type: Date, default: Date.now},
   updatedAt: {type: Date, default: Date.now},
 });
