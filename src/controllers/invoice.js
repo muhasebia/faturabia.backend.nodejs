@@ -10,7 +10,7 @@ async function createInvoice(req, res) {
     const newInvoice = new Invoice(invoiceData);
     await newInvoice.save();
 
-    user.invoice.push(newInvoice);
+    user.invoices.push(newInvoice);
     await user.save();
 
     res.status(201).json({ message: "Fatura başarıyla oluşturuldu" });
