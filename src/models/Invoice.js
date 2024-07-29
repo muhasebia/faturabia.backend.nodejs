@@ -22,7 +22,7 @@ const invoiceScheme = new mongoose.Schema({
     waybillDate: {type: Date},
     createdAt: {type: Date, default: Date.now},
     updatedAt: {type: Date, default: Date.now},
-
+    },
 });
 const InvoiceModel = mongoose.model("Invoice", invoiceScheme);
 export default InvoiceModel;
