@@ -11,15 +11,15 @@ const invoiceScheme = new mongoose.Schema({
             discountRate: {type: Number, required: true, default: 0},
             discountAmount: {type: Number, required: true, default: 0},
             priceWithTax: {type: Number, required: true},
-            
+            unit: {type: String, required: true},
         }
     ],
     exceptional: {type: String},
-    currency: {type: String, required: true, default: "₺"},
-    exchange: {type: Number, required: true},
+    currency: {type: String, default: "₺"},
+    exchange: {type: Number,
     invoiceNote: {type: String},
-    waybillNo: {type: String, required: true},
-    waybillDate: {type: Date, required: true},
+    waybillNo: {type: String},
+    waybillDate: {type: Date},
     createdAt: {type: Date, default: Date.now},
     updatedAt: {type: Date, default: Date.now},
 
