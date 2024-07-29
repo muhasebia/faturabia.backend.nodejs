@@ -7,7 +7,7 @@ const invoiceScheme = new mongoose.Schema({
         {
             productId: {type: String, required: true},
             quantity: {type: Number, required: true},
-            unitPrice: {type: Number, required: true},
+            price: {type: Number, required: true},
             discountRate: {type: Number, required: true, default: 0},
             discountAmount: {type: Number, required: true, default: 0},
             priceWithTax: {type: Number, required: true},
