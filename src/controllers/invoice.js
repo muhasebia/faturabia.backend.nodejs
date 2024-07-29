@@ -5,10 +5,15 @@ import User from '../models/User.js';
 async function createInvoice(req, res) {
   try {
     const user = req.user;
-    const newInvoice = new Invoice(req.body);
+    
+    const invoiceData = req.body;
+    const newInvoice = new Invoice(invoiceData);
     await newInvoice.save();
-    user.invoice.push(newInvoice._id);
-    res.status(201).json({ message: "Invoice created successfully" });
+
+    user.invoice.push(newInvoice);
+    await user.save();
+
+    res.status(201).json({ message: "Fatura başarıyla oluşturuldu" });
   } catch (error) {
     res.status(500).json({ error: "An error occurred", message: error.message });
   }
