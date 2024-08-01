@@ -12,19 +12,21 @@ const invoiceScheme = new mongoose.Schema({
             discountAmount: {type: Number, required: true, default: 0},
             priceWithTax: {type: Number, required: true},
             unit: {type: String, required: true},
+            createdAt: {type: Date, default: Date.now, required: true},
+            updatedAt: {type: Date, default: Date.now, required: true},
         }
     ],
     totalPrice: {type: Number, required: true},
     totalPriceWithTax: {type: Number, required: true},
     exceptional: {type: String},
     currency: {type: String, default: "₺"},
-    exchange: {type: Number,
+    exchange: {type: Number},
     invoiceNote: {type: String},
     waybillNo: {type: String},
     waybillDate: {type: Date},
-    createdAt: {type: Date, default: Date.now},
-    updatedAt: {type: Date, default: Date.now},
+    createdAt: {type: Date, default: Date.now, required: true},
+    updatedAt: {type: Date, default: Date.now, required: true},
     },
-});
+);
 const InvoiceModel = mongoose.model("Invoice", invoiceScheme);
 export default InvoiceModel;
