@@ -1,6 +1,8 @@
 import Invoice from '../models/Invoice.js';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
+import InvoiceModel from "../models/Invoice.js";
+
 
 async function createInvoice(req, res) {
   try {
@@ -37,39 +39,46 @@ async function getInvoice(req, res) {
     }
 }
 
-async function getInvoices(req, res) {
-    try {
-      const user = req.user;
-      const count = user.invoices.length;
-  
-      // Sayfa numarası ve sayfa başına ürün sayısını al
-      const { page = 1, pageSize = 10 } = req.query;
-      const skip = (page - 1) * pageSize;
-  
-      const invoices = await User.findById(user._id).populate({
-        path: 'invoices',
-        options: {
-          limit: parseInt(pageSize),
-          skip,
-          sort: { _id: -1 }  // Ürünleri ID'ye göre ters sıralayarak en son ekleneni başa alır
-        },
-      });
-  
-      const response = {
-        data: invoices.invoices,
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        length: count,
-      };
-  
-      res.status(200).json(response);
-      
-    } catch (error) {
-      res.status(500).json({
-        error: 'faturalar getirilirken bir hata oluştu.',
-        message: error.message,
-      });
-    }
-  }
 
-  export { createInvoice, getInvoice, getInvoices };
+async function getInvoices(req, res) {
+  try {
+      const user = req.user;  // Kullanıcı doğrulaması yapıldığını varsayıyoruz
+      const { page = 1, pageSize = 10, invoiceTuru } = req.query;
+      const skip = (page - 1) * pageSize;
+
+      // Kullanıcıyı ve faturalarını al
+      const userWithInvoices = await User.findById(user._id)
+          .populate({
+              path: 'invoices',
+              match: invoiceTuru ? { invoiceTuru } : {},
+              options: {
+                  limit: parseInt(pageSize),
+                  skip,
+                  sort: { _id: -1 }
+              }
+          });
+
+      const invoices = userWithInvoices.invoices;
+      const count = invoices.length;
+
+      const response = {
+          data: invoices,
+          page: parseInt(page),
+          pageSize: parseInt(pageSize),
+          length: count,
+      };
+
+      res.status(200).json(response);
+
+  } catch (error) {
+      res.status(500).json({
+          error: 'Faturalar getirilirken bir hata oluştu.',
+          message: error.message,
+      });
+  }
+}
+
+
+
+
+export { createInvoice, getInvoice, getInvoices };
