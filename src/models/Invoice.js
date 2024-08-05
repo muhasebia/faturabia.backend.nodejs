@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 const invoiceScheme = new mongoose.Schema({
-    invoiceTuru: {type: String, required: true, enum: ["giden", "gelen"]},
-    invoiceTipi: {type: String, required: true, enum: ["satis", "iade", "tevkifat", "istisna", "ozelMatrah", "ihracKayitli", "konaklamaVergisi" ]},
+    invoiceTipi: {type: String, required: true, enum: ["SATIS", "IADE", "TEVKİFAT", "ISTISNA", "IHRACKAYITLI", "OZELMATRAH", "SGK", "KOMISYONCU"]},
     customerId: {type: String, required: true},
     products: [
         {
