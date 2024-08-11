@@ -1,20 +1,7 @@
 import mongoose from "mongoose";
 
-
-const validateTCKimlik = (tcKimlik) => {
-    return /^[1-9]\d{10}$/.test(tcKimlik);
-  };
-
 const CustomerScheme = new mongoose.Schema({
-    TcNumber: {
-        type: String,
-        required: true,
-        unique: true,
-        validate: {
-          validator: validateTCKimlik,
-          message: props => `${props.value} geçerli bir T.C. kimlik numarası değil!`
-        }
-      },
+    TcNumber: {type: String,required: true, unique: true},
     title: {type: String},
     name: {type: String},
     surname: {type: String},
