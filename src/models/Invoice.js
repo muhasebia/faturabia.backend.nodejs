@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 const invoiceScheme = new mongoose.Schema({
     invoiceTipi: {type: String, required: true, enum: ["SATIS", "IADE", "TEVKİFAT", "ISTISNA", "IHRACKAYITLI", "OZELMATRAH", "SGK", "KOMISYONCU"]},
     customerId: {type: String, required: true},
+    invoiceStatus: {type: String, required: true, enum: ["DRAFT", "SENT"]},
+    nesInvoiceId: {type: String},
     products: [
         {
             productId: {type: String, required: true},
