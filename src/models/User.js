@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const UserScheme = new mongoose.Schema({
+  nesAPIKey: { type: String },
   fullName: { type: String, required: true },
   email: { type: String, required: true },
   password: { type: String, required: true },
