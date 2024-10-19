@@ -19,8 +19,33 @@ async function createProduct(req, res) {
 
 async function updateProduct(req, res) {
     try {
-      const { productId } = req.params.id;
-      await Product.findByIdAndUpdate(productId, req.body);
+      const productId = req.params.id;
+      const user = req.user;
+
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ message: "Geçersiz ürün ID'si" });
+      }
+
+      const product = await Product.findById(productId)
+
+      if (!product) {
+        return res.status(404).json({ error: 'Ürün bulunamadı' })
+      }
+
+      const isProduct = user.products.find(
+        (customer) => product._id == productId,
+      )
+
+      if (!isProduct) {
+        return res.status(404).json({ error: 'Ürün bulunamadı' })
+      }
+
+      const productData = {
+        ...req.body,
+        updatedAt: Date.now(),
+      }
+
+      await Product.findByIdAndUpdate(product._id, productData);
       res.status(200).json({ message: 'Ürün başarıyla güncellendi' });
     } catch (error) {
       res.status(500).json({
