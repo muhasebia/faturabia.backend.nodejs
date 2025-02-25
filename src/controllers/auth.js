@@ -157,6 +157,32 @@ async function updateUser(req, res) {
   }
 }
 
+async function updateNESApiKey(req, res) {
+  try {
+    const userId = req.userId
+
+    const existingUser = await User.findById(userId)
+
+    if (!existingUser) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' })
+    }
+
+    const { nesApiKey } = req.body;
+    if (!nesApiKey) {
+      return res.status(400).json({ error: 'nesApiKey alanı boş olamaz' });
+    }
+
+    existingUser.nesApiKey = nesApiKey;
+    await existingUser.save();
+    res.status(200).json({ message: 'nesApiKey başarıyla güncellendi' });
+  }
+  catch (error) {
+    res.status(500).json({ message: 'Güncelleme başarısız.', error:error.message});
+  }
+}
+
+
+
 
 async function getUser(req, res) {
   try {
@@ -177,4 +203,4 @@ async function getUser(req, res) {
 }
 
 
-export { register, login, updateUser, getUser }
+export { register, login, updateUser, updateNESApiKey, getUser }
