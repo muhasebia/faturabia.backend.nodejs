@@ -10,7 +10,7 @@ router.post('/register', register);
 router.post('/login', login);
 router.get('/getUser', verifyToken, checkUser, getUser);
 router.post('/update', verifyToken, checkUser, updateUser);
-router.post('/updateNesApiKey', verifyToken, checkUser, updateNESApiKey);
+router.put('/updateNesApiKey', verifyToken, checkUser, updateNESApiKey);
 
 
 export default router;

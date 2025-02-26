@@ -167,21 +167,20 @@ async function updateNESApiKey(req, res) {
       return res.status(404).json({ error: 'Kullanıcı bulunamadı' })
     }
 
-    const { nesApiKey } = req.body;
+    const { nesApiKey } = req.body
+
     if (!nesApiKey) {
-      return res.status(400).json({ error: 'nesApiKey alanı boş olamaz' });
+      return res.status(400).json({ error: 'NES API anahtarı sağlanmadı' })
     }
 
-    existingUser.nesApiKey = nesApiKey;
-    await existingUser.save();
-    res.status(200).json({ message: 'nesApiKey başarıyla güncellendi' });
+    existingUser.nesApiKey = nesApiKey
+    await existingUser.save()
+    res.status(200).json({ message: 'NES API anahtarı başarıyla güncellendi' })
   }
   catch (error) {
     res.status(500).json({ message: 'Güncelleme başarısız.', error:error.message});
   }
 }
-
-
 
 
 async function getUser(req, res) {
