@@ -3,7 +3,7 @@ const productScheme = new mongoose.Schema({
     name: {type: String, required: true},
     unit: {type: String, required: true},
     currency: {type: String, required: true, default: "TRY"},
-    taxRate: {type: Number, required: true, default: 0, enum : [0, 1, 10, 20]},
+    taxRate: {type: Number, required: true, default: 0, enum : [0, 1, 8, 10, 18, 20]},
     price: {type: Number, required: true, default: 0},
     priceWithTax: {type: Number, required: true, default: 0},
     createdAt: {type: Date, default: Date.now},

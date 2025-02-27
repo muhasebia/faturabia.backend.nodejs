@@ -159,26 +159,37 @@ async function updateUser(req, res) {
 
 async function updateNESApiKey(req, res) {
   try {
-    const userId = req.userId
+    const userId = req.userId;
 
-    const existingUser = await User.findById(userId)
-
-    if (!existingUser) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' })
-    }
-
-    const { nesApiKey } = req.body
-
+    const { nesApiKey } = req.body;
+    
     if (!nesApiKey) {
-      return res.status(400).json({ error: 'NES API anahtarı sağlanmadı' })
+      return res.status(400).json({ error: 'NES API anahtarı sağlanmadı' });
     }
 
-    existingUser.nesApiKey = nesApiKey
-    await existingUser.save()
-    res.status(200).json({ message: 'NES API anahtarı başarıyla güncellendi' })
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: { nesApiKey: nesApiKey } },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+
+    res.status(200).json({ 
+      message: 'NES API anahtarı başarıyla güncellendi',
+      user: {
+        nesApiKey: updatedUser.nesApiKey
+      }
+    });
   }
   catch (error) {
-    res.status(500).json({ message: 'Güncelleme başarısız.', error:error.message});
+    console.error("Hata detayı:", error);
+    res.status(500).json({ 
+      message: 'Güncelleme başarısız.',
+      error: error.message
+    });
   }
 }
 
