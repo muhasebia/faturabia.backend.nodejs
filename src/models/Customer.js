@@ -17,6 +17,7 @@ const CustomerScheme = new mongoose.Schema({
     email: {type: String},
     website: {type: String},
     note: {type: String},
+    isFavorite: {type: Boolean, default: false},
     createdAt: {type: Date, default: Date.now},
     updatedAt: {type: Date, default: Date.now},
 });

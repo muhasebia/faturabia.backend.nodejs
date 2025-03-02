@@ -8,6 +8,7 @@ const productScheme = new mongoose.Schema({
     priceWithTax: {type: Number, required: true, default: 0},
     code: {type: String},
     stock: {type: Number, default: 0},
+    isFavorite: {type: Boolean, default: false},
     createdAt: {type: Date, default: Date.now},
     updatedAt: {type: Date, default: Date.now},
 });
