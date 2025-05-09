@@ -1,7 +1,9 @@
 import {port, env} from './src/config/env/index.js';   
 import mongoose from 'mongoose';
 import app from './src/app.js';
+import dotenv from 'dotenv';
 
+dotenv.config();
 const uri = "mongodb+srv://iscan:iscan@faturabia.mkcvi8b.mongodb.net/?appName=faturabia";
 
 async function connectDB() {
