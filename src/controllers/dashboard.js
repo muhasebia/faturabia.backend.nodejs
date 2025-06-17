@@ -2,6 +2,89 @@ import UserInvoices from '../models/UserInvoices.js';
 import Customer from '../models/Customer.js';
 import User from '../models/User.js';
 
+async function getApiStatus(req, res) {
+  try {
+    const userId = req.userId;
+    
+    // User ve API anahtarı bilgilerini al
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'Kullanıcı bulunamadı.'
+      });
+    }
+
+    // UserInvoices bilgilerini al
+    const userInvoices = await UserInvoices.findOne({ userId });
+    
+    // Son senkronizasyon tarihlerini belirle
+    let lastSynchronization = null;
+    if (userInvoices && userInvoices.lastFetchDate) {
+      const syncDates = Object.values(userInvoices.lastFetchDate).filter(date => date);
+      if (syncDates.length > 0) {
+        lastSynchronization = new Date(Math.max(...syncDates.map(date => new Date(date))));
+      }
+    }
+
+    // Toplam senkronize edilen fatura sayısını hesapla
+    const totalSynchronizedInvoices = userInvoices ? userInvoices.toplamFatura : 0;
+
+    // API durumu bilgilerini döndür
+    res.status(200).json({
+      success: true,
+      data: {
+        apiKeyStatus: {
+          hasApiKey: !!user.nesApiKey,
+          isActive: !!user.nesApiKey,
+          message: user.nesApiKey 
+            ? 'API anahtarı aktif' 
+            : 'API anahtarı tanımlanmamış'
+        },
+        lastSynchronization: {
+          date: lastSynchronization,
+          formatted: lastSynchronization 
+            ? lastSynchronization.toLocaleString('tr-TR') 
+            : 'Henüz senkronizasyon yapılmamış',
+          details: userInvoices?.lastFetchDate || {}
+        },
+        synchronizedInvoiceCount: {
+          total: totalSynchronizedInvoices,
+          breakdown: userInvoices ? {
+            eFatura: {
+              incoming: userInvoices.eFatura.incoming?.length || 0,
+              outgoing: userInvoices.eFatura.outgoing?.length || 0,
+              incomingDraft: userInvoices.eFatura.incomingDraft?.length || 0,
+              outgoingDraft: userInvoices.eFatura.outgoingDraft?.length || 0
+            },
+            eArchive: {
+              incoming: userInvoices.eArchive.incoming?.length || 0,
+              outgoing: userInvoices.eArchive.outgoing?.length || 0,
+              incomingDraft: userInvoices.eArchive.incomingDraft?.length || 0,
+              outgoingDraft: userInvoices.eArchive.outgoingDraft?.length || 0
+            }
+          } : {
+            eFatura: { incoming: 0, outgoing: 0, incomingDraft: 0, outgoingDraft: 0 },
+            eArchive: { incoming: 0, outgoing: 0, incomingDraft: 0, outgoingDraft: 0 }
+          }
+        },
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email
+        },
+        lastUpdateDate: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('API durumu getirilirken hata:', error);
+    res.status(500).json({
+      error: 'API durumu getirilirken hata oluştu.',
+      message: error.message
+    });
+  }
+}
+
 async function getDashboardData(req, res) {
   try {
     const userId = req.userId;
@@ -337,4 +420,4 @@ function getEmptyDashboardData() {
   };
 }
 
-export { getDashboardData }; 
+export { getDashboardData, getApiStatus }; 
