@@ -125,7 +125,6 @@ async function updateUser(req, res) {
      
     const { password } = req.body;  
     if (password) {
-      // Eğer yeni bir şifre verildiyse, şifreyi güncelle
       if (password.length < 6)
         return res
           .status(400)

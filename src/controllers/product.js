@@ -58,7 +58,6 @@ async function deleteProduct(req, res) {
       const { productId } = req.params;
       await Product.findByIdAndDelete(productId);
   
-      // Ürünü user belgesinin products alanından da sil
       const user = req.user;
       user.products = user.products.filter(id => id.toString() !== productId);
       await user.save();

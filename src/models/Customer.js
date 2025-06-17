@@ -18,6 +18,13 @@ const CustomerScheme = new mongoose.Schema({
   website: { type: String },
   note: { type: String },
   isFavorite: { type: Boolean, default: false },
+  
+  // Fatura entegrasyonu için
+  partyIdentification: { type: String }, // Faturadaki vergi/tc no
+  partyName: { type: String }, // Faturadaki firma adı
+  isFromInvoice: { type: Boolean, default: false }, // Faturadan mı geldi
+  invoiceCount: { type: Number, default: 0 }, // Bu müşteriye ait toplam fatura sayısı
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

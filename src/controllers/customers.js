@@ -1,5 +1,6 @@
 import Customer from "../models/Customer.js";
 import User from "../models/User.js";
+import UserInvoices from "../models/UserInvoices.js";
 import mongoose from "mongoose";
 
 
@@ -61,7 +62,6 @@ async function getCustomer(req, res) {
       const customerId = req.params.id;
       const user = req.user;
   
-      // customerId'nin geçerli bir ObjectId olup olmadığını kontrol et
       if (!mongoose.Types.ObjectId.isValid(customerId)) {
         return res.status(400).json({ message: "Geçersiz müşteri ID'si" });
       }
@@ -72,13 +72,11 @@ async function getCustomer(req, res) {
         return res.status(404).json({ message: "Müşteri bulunamadı" });
       }
   
-      // userın customers listesinde müşteri var mı diye kontrol et
       const isCustomer = user.customers.some(
         (customer) => customer._id.toString() === customerId
       );
   
       if (!isCustomer) {
-        // Müşteri bulunamadı veya kullanıcıya ait değil
         return res.status(404).json({ message: "Müşteri bulunamadı." });
       }
   
@@ -111,11 +109,9 @@ async function updateCustomer(req, res) {
       )
   
       if (!isCustomer) {
-        // Müşteri bulunamadı veya kullanıcıya ait değil
         return res.status(404).json({ error: 'Müşteri bulunamadı' })
       }
   
-      // Müşteri bilgilerini güncelle
       const customerData = {
         ...req.body,
         updatedAt: Date.now(),
@@ -149,7 +145,6 @@ async function deleteCustomer(req, res) {
     )
 
     if (!isCustomer) {
-      // Müşteri bulunamadı veya kullanıcıya ait değil
       return res.status(404).json({ error: 'Müşteri bulunamadı' })
     }
 
@@ -172,8 +167,70 @@ async function deleteCustomer(req, res) {
 
 }
 
+async function getCustomerInvoices(req, res) {
+  try {
+    const { customerId } = req.params;
+    const userId = req.userId;
 
-export { createCustomer, getCustomers, getCustomer, updateCustomer, deleteCustomer };
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+    }
+
+    const customer = await Customer.findOne({
+      _id: customerId,
+      _id: { $in: user.customers }
+    });
+    if (!customer) {
+      return res.status(404).json({ message: "Müşteri bulunamadı" });
+    }
+
+    const userInvoices = await UserInvoices.findOne({ userId });
+    if (!userInvoices) {
+      return res.status(200).json({
+        invoices: [],
+        customer: customer
+      });
+    }
+
+    const allInvoices = [
+      ...(userInvoices.eFatura.incoming || []),
+      ...(userInvoices.eFatura.outgoing || []),
+      ...(userInvoices.eArchive.incoming || []),
+      ...(userInvoices.eArchive.outgoing || [])
+    ];
+
+    const customerInvoices = allInvoices.filter(invoice => {
+      let partyId = null;
+      
+      if (invoice.accountingSupplierParty?.party) {
+        partyId = invoice.accountingSupplierParty.party.partyIdentification?.[0]?.id;
+      }
+      else if (invoice.accountingCustomerParty) {
+        partyId = invoice.accountingCustomerParty.partyIdentification;
+      }
+      
+      return partyId === customer.partyIdentification;
+    });
+
+    customerInvoices.sort((a, b) => {
+      const dateA = new Date(a.issueDate || a.createDate || 0);
+      const dateB = new Date(b.issueDate || b.createDate || 0);
+      return dateB - dateA;
+    });
+
+    res.status(200).json({
+      invoices: customerInvoices,
+      customer: customer
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: 'Müşteri faturaları getirilirken hata oluştu.',
+      message: error.message,
+    });
+  }
+}
 
 
-//that was quiet
+export { createCustomer, getCustomers, getCustomer, updateCustomer, deleteCustomer, getCustomerInvoices };
