@@ -17,7 +17,8 @@ router.use('/reports', reportsRouter)
 router.use('/dashboard', dashboardRouter)
 router.get('/', (req, res) => {
     res.json({
-        message: 'API - 👋🌎🌍🌏'
+        message: 'API - 👋🌎🌍🌏',
+        version: '1.0.2'
     })
 }
 )
