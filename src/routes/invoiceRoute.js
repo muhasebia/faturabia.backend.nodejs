@@ -1,7 +1,7 @@
 import express from 'express';
 import verifyToken from '../middlewares/authMiddleware.js';
 import checkUser from '../middlewares/checkUser.js';
-import { fetchIncomingInvoices, fetchOutgoingInvoices, fetchDraftInvoices, fetchEArchiveInvoices, fetchEArchiveDraftInvoices, fetchAllInvoices, getInvoices, getInvoice, getIncomingInvoices, getOutgoingInvoices, getDraftInvoices, getAllInvoicesFormatted, searchInvoices } from '../controllers/invoice.js';
+import { fetchIncomingInvoices, fetchOutgoingInvoices, fetchDraftInvoices, fetchEArchiveInvoices, fetchEArchiveDraftInvoices, fetchAllInvoices, getInvoices, getInvoice, getIncomingInvoices, getOutgoingInvoices, getDraftInvoices, getAllInvoicesFormatted, searchInvoices, getUserStatistics } from '../controllers/invoice.js';
 
 const router = express.Router();
 
@@ -40,6 +40,9 @@ router.get('/list/drafts', verifyToken, checkUser, getDraftInvoices);
 
 // Tüm faturaları getir (hepsi bir arada)
 router.get('/list/all', verifyToken, checkUser, getAllInvoicesFormatted);
+
+// İstatistikler - Toplam tutar, gelen/giden tutarlar ve kar/zarar
+router.get('/statistics', verifyToken, checkUser, getUserStatistics);
 
 // Fatura arama ve filtreleme (pagination yok, tüm sonuçlar)
 router.get('/search', verifyToken, checkUser, searchInvoices);

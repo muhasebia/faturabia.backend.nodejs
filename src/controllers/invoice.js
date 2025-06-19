@@ -610,7 +610,7 @@ async function getInvoices(req, res) {
     const userId = req.userId;
     const { type, category = 'eFatura' } = req.query;
     
-    const userInvoices = await UserInvoices.findOne({ userId: userId });
+    const userInvoices = await UserInvoices.findOne({ userId });
     
     if (!userInvoices) {
       return res.status(200).json({
@@ -654,7 +654,7 @@ async function getInvoice(req, res) {
     const userId = req.userId;
     const { uuid } = req.params;
     
-    const userInvoices = await UserInvoices.findOne({ userId: userId });
+    const userInvoices = await UserInvoices.findOne({ userId });
     
     if (!userInvoices) {
       return res.status(404).json({ error: 'Fatura bulunamadı.' });
@@ -1125,6 +1125,108 @@ async function searchInvoices(req, res) {
   }
 }
 
+async function getUserStatistics(req, res) {
+  try {
+    const userId = req.userId;
+    
+    const userInvoices = await UserInvoices.findOne({ userId });
+    if (!userInvoices) {
+      return res.status(200).json({
+        message: 'Henüz fatura verisi bulunamadı.',
+        statistics: {
+          toplamTutar: 0,
+          gelenTutar: 0,
+          gidenTutar: 0,
+          toplaMiktar: 0,
+          karZarar: 0,
+          gelenMiktar: 0,
+          gidenMiktar: 0
+        }
+      });
+    }
+
+    // Gelen faturalar (incoming)
+    const gelenFaturalar = [
+      ...(userInvoices.eFatura.incoming || []),
+      ...(userInvoices.eArchive.incoming || [])
+    ];
+
+    // Giden faturalar (outgoing)
+    const gidenFaturalar = [
+      ...(userInvoices.eFatura.outgoing || []),
+      ...(userInvoices.eArchive.outgoing || [])
+    ];
+
+    // Taslak faturalar (drafts) - hesaplamalara dahil edilmeyecek
+    const taslakFaturalar = [
+      ...(userInvoices.eFatura.incomingDraft || []),
+      ...(userInvoices.eFatura.outgoingDraft || []),
+      ...(userInvoices.eArchive.incomingDraft || []),
+      ...(userInvoices.eArchive.outgoingDraft || [])
+    ];
+
+    // Gelen toplam tutar
+    const gelenTutar = gelenFaturalar.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.payableAmount || 0);
+      return sum + amount;
+    }, 0);
+
+    // Giden toplam tutar
+    const gidenTutar = gidenFaturalar.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.payableAmount || 0);
+      return sum + amount;
+    }, 0);
+
+    // Toplam tutar (gelen + giden)
+    const toplamTutar = gelenTutar + gidenTutar;
+
+    // Kar/Zarar (gelen - giden)
+    const karZarar = gelenTutar - gidenTutar;
+
+    // Miktar sayıları
+    const gelenMiktar = gelenFaturalar.length;
+    const gidenMiktar = gidenFaturalar.length;
+    const toplamMiktar = gelenMiktar + gidenMiktar;
+
+    res.status(200).json({
+      success: true,
+      statistics: {
+        toplamTutar: Math.round(toplamTutar * 100) / 100,
+        gelenTutar: Math.round(gelenTutar * 100) / 100,
+        gidenTutar: Math.round(gidenTutar * 100) / 100,
+        karZarar: Math.round(karZarar * 100) / 100,
+        toplamMiktar,
+        gelenMiktar,
+        gidenMiktar,
+        taslakMiktar: taslakFaturalar.length
+      },
+      summary: {
+        gelenFaturalar: {
+          miktar: gelenMiktar,
+          tutar: Math.round(gelenTutar * 100) / 100,
+          ortalama: gelenMiktar > 0 ? Math.round((gelenTutar / gelenMiktar) * 100) / 100 : 0
+        },
+        gidenFaturalar: {
+          miktar: gidenMiktar,
+          tutar: Math.round(gidenTutar * 100) / 100,
+          ortalama: gidenMiktar > 0 ? Math.round((gidenTutar / gidenMiktar) * 100) / 100 : 0
+        },
+        taslakFaturalar: {
+          miktar: taslakFaturalar.length
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('İstatistikler getirilirken hata:', error);
+    res.status(500).json({
+      error: 'İstatistikler getirilirken bir hata oluştu.',
+      message: error.message
+    });
+  }
+}
+
 export { 
   fetchIncomingInvoices, 
   fetchOutgoingInvoices, 
@@ -1138,5 +1240,6 @@ export {
   getOutgoingInvoices,
   getDraftInvoices,
   getAllInvoicesFormatted,
-  searchInvoices
+  searchInvoices,
+  getUserStatistics
 }; 
