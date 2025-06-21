@@ -245,9 +245,9 @@ async function updateUser(req, res) {
       return res.status(404).json({ error: 'Kullanıcı bulunamadı' })
     }
 
+    // Model'de tanımlı field'lar (apartmentName -> apartmentNo düzeltmesi)
     const fields = [
       'fullName',
-      'password',
       'email',
       'bankName',
       'IBAN',
@@ -257,6 +257,7 @@ async function updateUser(req, res) {
       'registirationNumber',
       'street',
       'apartmentName',
+      'apartmentNo',
       'doorNumber',
       'neighborhood',
       'town',
@@ -269,12 +270,22 @@ async function updateUser(req, res) {
       'businnesCenter'
     ];
     
+    // Email unique kontrolü
+    if (req.body.email && req.body.email !== existingUser.email) {
+      const emailExists = await User.findOne({ email: req.body.email });
+      if (emailExists) {
+        return res.status(400).json({ error: 'Bu email adresi zaten kullanımda' });
+      }
+    }
+
+    // Field'ları güncelle
     fields.forEach(field => {
-      if (req.body[field]) {
+      if (req.body[field] !== undefined) {
         existingUser[field] = req.body[field];
       }
     });
      
+    // Şifre validasyonu ve güncellemesi
     const { password } = req.body;  
     if (password) {
       if (password.length < 6)
@@ -298,13 +309,28 @@ async function updateUser(req, res) {
         return res
           .status(400)
           .json({ error: 'Şifreniz en az bir rakam içermelidir' });
+      
       existingUser.password = await bcrypt.hash(password, 10);
     }
 
+    // UpdatedAt field'ını güncelle
+    existingUser.updatedAt = new Date();
+
     await existingUser.save();
-    res.status(200).json({ message: 'Kullanıcı başarıyla güncellendi' });
+    
+    // Güncellenmiş kullanıcı bilgilerini döndür (şifre hariç)
+    const updatedUserResponse = await User.findById(userId).select('-password');
+    
+    res.status(200).json({ 
+      message: 'Kullanıcı başarıyla güncellendi',
+      user: updatedUserResponse
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Güncelleme başarısız.', error:error.message});
+    console.error('Kullanıcı güncelleme hatası:', error);
+    res.status(500).json({ 
+      message: 'Güncelleme başarısız.', 
+      error: error.message
+    });
   }
 }
 
@@ -363,6 +389,91 @@ async function getUser(req, res) {
   }
 }
 
+async function changePassword(req, res) {
+  try {
+    const userId = req.userId;
+    const { currentPassword, newPassword } = req.body;
 
+    // Validasyon kontrolleri
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        error: 'Mevcut şifre ve yeni şifre gereklidir' 
+      });
+    }
 
-export { register, login, updateUser, updateNESApiKey, getUser, forgotPassword, resetPassword, validateResetToken }
+    // Kullanıcıyı bul
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+
+    // Mevcut şifreyi kontrol et
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ 
+        error: 'Mevcut şifre yanlış' 
+      });
+    }
+
+    // Yeni şifre mevcut şifre ile aynı mı?
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ 
+        error: 'Yeni şifre mevcut şifre ile aynı olamaz' 
+      });
+    }
+
+    // Yeni şifre validasyonu
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        error: 'Yeni şifre en az 6 karakter olmalıdır' 
+      });
+    }
+    
+    if (newPassword.length > 32) {
+      return res.status(400).json({ 
+        error: 'Yeni şifre en fazla 32 karakter olmalıdır' 
+      });
+    }
+
+    if (!newPassword.match(/[a-z]/g)) {
+      return res.status(400).json({ 
+        error: 'Yeni şifre en az bir küçük harf içermelidir' 
+      });
+    }
+
+    if (!newPassword.match(/[A-Z]/g)) {
+      return res.status(400).json({ 
+        error: 'Yeni şifre en az bir büyük harf içermelidir' 
+      });
+    }
+
+    if (!newPassword.match(/[0-9]/g)) {
+      return res.status(400).json({ 
+        error: 'Yeni şifre en az bir rakam içermelidir' 
+      });
+    }
+
+    // Yeni şifreyi hash'le ve kaydet
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedNewPassword;
+    user.updatedAt = new Date();
+    
+    await user.save();
+
+    // Başarı mesajı
+    res.status(200).json({ 
+      message: 'Şifreniz başarıyla değiştirildi',
+      changedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Şifre değiştirme hatası:', error);
+    res.status(500).json({ 
+      error: 'Şifre değiştirme sırasında bir hata oluştu',
+      message: error.message
+    });
+  }
+}
+
+export { register, login, updateUser, updateNESApiKey, getUser, forgotPassword, resetPassword, validateResetToken, changePassword }

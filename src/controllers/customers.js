@@ -27,30 +27,87 @@ async function createCustomer(req, res) {
 async function getCustomers(req, res) {
   try {
     const user = req.user;
-    const count = user.customers.length;
+    const totalCustomers = user.customers.length;
 
-    const { page = 1, pageSize = count } = req.query;
-    const skip = (page - 1) * pageSize;
+    // Query parametrelerini al ve default değerler ata
+    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    
+    // Pagination hesaplamaları
+    const currentPage = parseInt(page);
+    const pageLimit = parseInt(limit);
+    const skip = (currentPage - 1) * pageLimit;
 
-    const customers = await User.findById(user._id).populate({
-      path: "customers",
-      options: {
-        limit: parseInt(pageSize),
-        skip,
-        sort: { _id: -1 }
-      },
-    });
+    // MongoDB aggregation pipeline oluştur
+    let matchStage = {
+      _id: { $in: user.customers }
+    };
+
+    // Arama filtresi ekle
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      matchStage.$or = [
+        { name: searchRegex },
+        { surname: searchRegex },
+        { title: searchRegex },
+        { partyName: searchRegex },
+        { email: searchRegex },
+        { phone: searchRegex },
+        { TcNumber: searchRegex },
+        { partyIdentification: searchRegex },
+        { city: searchRegex },
+        { town: searchRegex }
+      ];
+    }
+
+    // Sıralama objesi oluştur
+    const sortObj = {};
+    sortObj[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    // Müşterileri getir
+    const customers = await Customer.find(matchStage)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(pageLimit)
+      .exec();
+
+    // Filtrelenmiş toplam sayıyı hesapla
+    const filteredTotal = await Customer.countDocuments(matchStage);
+
+    // Pagination bilgilerini hesapla
+    const totalPages = Math.ceil(filteredTotal / pageLimit);
+    const hasNextPage = currentPage < totalPages;
+    const hasPrevPage = currentPage > 1;
 
     const response = {
-      data: customers.customers,
-      page: parseInt(page),
-      pageSize: parseInt(pageSize),
-      length: count,
+      success: true,
+      data: customers,
+      pagination: {
+        currentPage,
+        totalPages,
+        pageLimit,
+        totalItems: filteredTotal,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? currentPage + 1 : null,
+        prevPage: hasPrevPage ? currentPage - 1 : null
+      },
+      filters: {
+        search: search || null,
+        sortBy,
+        sortOrder
+      },
+      summary: {
+        totalCustomersInAccount: totalCustomers,
+        filteredResults: filteredTotal,
+        showingResults: customers.length
+      }
     };
 
     res.status(200).json(response);
   } catch (error) {
+    console.error('Müşteriler getirilirken hata:', error);
     res.status(500).json({
+      success: false,
       error: "Müşteriler getirilirken bir hata oluştu.",
       message: error.message,
     });
@@ -232,5 +289,77 @@ async function getCustomerInvoices(req, res) {
   }
 }
 
+async function getCustomerCount(req, res) {
+  try {
+    const user = req.user;
+    
+    // Toplam müşteri sayısı
+    const totalCustomers = user.customers.length;
+    
+    // Arama parametresi varsa filtrelenmiş sayıyı da hesapla
+    const { search = '' } = req.query;
+    
+    let filteredCount = totalCustomers;
+    
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      const matchStage = {
+        _id: { $in: user.customers },
+        $or: [
+          { name: searchRegex },
+          { surname: searchRegex },
+          { title: searchRegex },
+          { partyName: searchRegex },
+          { email: searchRegex },
+          { phone: searchRegex },
+          { TcNumber: searchRegex },
+          { partyIdentification: searchRegex },
+          { city: searchRegex },
+          { town: searchRegex }
+        ]
+      };
+      
+      filteredCount = await Customer.countDocuments(matchStage);
+    }
 
-export { createCustomer, getCustomers, getCustomer, updateCustomer, deleteCustomer, getCustomerInvoices };
+    // Favori müşteri sayısı
+    const favoriteCount = await Customer.countDocuments({
+      _id: { $in: user.customers },
+      isFavorite: true
+    });
+
+    // Faturadan gelen müşteri sayısı
+    const fromInvoiceCount = await Customer.countDocuments({
+      _id: { $in: user.customers },
+      isFromInvoice: true
+    });
+
+    // Manuel eklenen müşteri sayısı
+    const manuallyAddedCount = totalCustomers - fromInvoiceCount;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalCustomers,
+        filteredCount: search ? filteredCount : null,
+        favoriteCustomers: favoriteCount,
+        fromInvoiceCustomers: fromInvoiceCount,
+        manuallyAddedCustomers: manuallyAddedCount
+      },
+      filters: {
+        search: search || null
+      },
+      lastUpdated: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Müşteri sayısı getirilirken hata:', error);
+    res.status(500).json({
+      success: false,
+      error: "Müşteri sayısı getirilirken bir hata oluştu.",
+      message: error.message,
+    });
+  }
+}
+
+export { createCustomer, getCustomers, getCustomer, updateCustomer, deleteCustomer, getCustomerInvoices, getCustomerCount };

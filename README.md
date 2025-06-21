@@ -676,3 +676,543 @@ API anahtar durumu, son senkronizasyon ve fatura sayısı bilgileri için endpoi
 }
 ```
 
+## Fatura İstatistikleri API'si
+
+### GET /api/invoices/statistics
+
+Kullanıcının tüm faturalarına ait istatistikleri döner.
+
+**Authentication:** Bearer Token gerekli
+
+**Response:**
+```json
+{
+  "success": true,
+  "statistics": {
+    "toplamTutar": 150000.50,
+    "gelenTutar": 200000.00,
+    "gidenTutar": 50000.50,
+    "karZarar": 149500.50,
+    "toplamMiktar": 45,
+    "gelenMiktar": 30,
+    "gidenMiktar": 15,
+    "taslakMiktar": 5
+  },
+  "summary": {
+    "gelenFaturalar": {
+      "miktar": 30,
+      "tutar": 200000.00,
+      "ortalama": 6666.67
+    },
+    "gidenFaturalar": {
+      "miktar": 15,
+      "tutar": 50000.50,
+      "ortalama": 3333.37
+    },
+    "taslakFaturalar": {
+      "miktar": 5
+    }
+  },
+  "lastUpdated": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Açıklama:**
+- `gelenTutar`: Müşterilerden gelen fatura tutarları (gelir)
+- `gidenTutar`: Tedarikçilere ödenen fatura tutarları (gider)  
+- `karZarar`: Gelir - Gider (pozitif kar, negatif zarar)
+- Taslak faturalar kar/zarar hesabına dahil edilmez
+- e-Fatura ve e-Arşiv faturaları birlikte hesaplanır
+
+**Kullanım:**
+```javascript
+fetch('/api/invoices/statistics', {
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+```
+
+## Kullanıcı Güncelleme API'si
+
+### POST /api/auth/update
+
+Giriş yapmış kullanıcının profil bilgilerini günceller.
+
+**Authentication:** Bearer Token gerekli
+
+**Request Body:**
+```json
+{
+  "fullName": "Ahmet Yılmaz",
+  "email": "ahmet@example.com",
+  "password": "YeniSifre123",
+  "bankName": "Ziraat Bankası",
+  "IBAN": 1234567890123456,
+  "taxAdministiration": "Kadıköy VD",
+  "title": "Yazılım Geliştirici",
+  "mersisNumber": "0123456789012345",
+  "registirationNumber": "12345",
+  "street": "Atatürk Caddesi No:123",
+  "apartmentName": 5,
+  "apartmentNo": 10,
+  "doorNumber": 3,
+  "neighborhood": "Merkez Mahallesi",
+  "town": "Kadıköy",
+  "city": "İstanbul",
+  "postCode": "34710",
+  "country": "Türkiye",
+  "phone": 5551234567,
+  "fax": 2161234567,
+  "website": "https://example.com",
+  "businnesCenter": "Teknoloji Merkezi"
+}
+```
+
+**Response (Başarılı):**
+```json
+{
+  "message": "Kullanıcı başarıyla güncellendi",
+  "user": {
+    "_id": "507f1f77bcf86cd799439011",
+    "fullName": "Ahmet Yılmaz",
+    "email": "ahmet@example.com",
+    "bankName": "Ziraat Bankası",
+    "IBAN": 1234567890123456,
+    "taxAdministiration": "Kadıköy VD",
+    "title": "Yazılım Geliştirici",
+    "mersisNumber": "0123456789012345",
+    "registirationNumber": "12345",
+    "street": "Atatürk Caddesi No:123",
+    "apartmentName": 5,
+    "apartmentNo": 10,
+    "doorNumber": 3,
+    "neighborhood": "Merkez Mahallesi",
+    "town": "Kadıköy",
+    "city": "İstanbul",
+    "postCode": "34710",
+    "country": "Türkiye",
+    "phone": 5551234567,
+    "fax": 2161234567,
+    "website": "https://example.com",
+    "businnesCenter": "Teknoloji Merkezi",
+    "createdAt": "2024-01-15T08:00:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Önemli Notlar:**
+- Tüm field'lar opsiyonel - sadece güncellemek istediğiniz field'ları gönderin
+- `email` değiştirilirse benzersizlik kontrolü yapılır
+- `password` güncellenirse şifre validasyonu uygulanır:
+  - En az 6, en fazla 32 karakter
+  - En az 1 küçük harf, 1 büyük harf, 1 rakam içermeli
+- Şifre response'da döndürülmez (güvenlik)
+
+**Hata Durumları:**
+```json
+// Email zaten kullanımda
+{
+  "error": "Bu email adresi zaten kullanımda"
+}
+
+// Şifre validasyon hatası
+{
+  "error": "Şifreniz en az 6 karakter olmalıdır"
+}
+
+// Kullanıcı bulunamadı
+{
+  "error": "Kullanıcı bulunamadı"
+}
+```
+
+**Kullanım Örneği:**
+```javascript
+// Sadece isim güncelleme
+fetch('/api/auth/update', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  },
+  body: JSON.stringify({
+    fullName: "Yeni İsim Soyisim"
+  })
+})
+
+// Birden fazla field güncelleme
+fetch('/api/auth/update', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  },
+  body: JSON.stringify({
+    fullName: "Ahmet Yılmaz",
+    email: "yeni@email.com",
+    phone: 5559876543,
+    city: "Ankara"
+  })
+})
+```
+
+## Şifre Değiştirme API'si
+
+### POST /api/auth/change-password
+
+Giriş yapmış kullanıcının şifresini güvenli bir şekilde değiştirir.
+
+**Authentication:** Bearer Token gerekli
+
+**Request Body:**
+```json
+{
+  "currentPassword": "MevcutSifre123",
+  "newPassword": "YeniSifre456"
+}
+```
+
+**Response (Başarılı):**
+```json
+{
+  "message": "Şifreniz başarıyla değiştirildi",
+  "changedAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Güvenlik Özellikleri:**
+- ✅ Mevcut şifre kontrolü yapılır
+- ✅ Yeni şifre eski şifre ile aynı olamaz
+- ✅ Güçlü şifre validasyonu uygulanır
+- ✅ Şifre bcrypt ile hash'lenir
+
+**Şifre Kuralları:**
+- En az 6, en fazla 32 karakter
+- En az 1 küçük harf (a-z)
+- En az 1 büyük harf (A-Z)  
+- En az 1 rakam (0-9)
+
+**Hata Durumları:**
+```json
+// Eksik parametre
+{
+  "error": "Mevcut şifre ve yeni şifre gereklidir"
+}
+
+// Yanlış mevcut şifre
+{
+  "error": "Mevcut şifre yanlış"
+}
+
+// Aynı şifre
+{
+  "error": "Yeni şifre mevcut şifre ile aynı olamaz"
+}
+
+// Şifre validation hatası
+{
+  "error": "Yeni şifre en az 6 karakter olmalıdır"
+}
+```
+
+**Kullanım Örneği:**
+```javascript
+fetch('/api/auth/change-password', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  },
+  body: JSON.stringify({
+    currentPassword: "EskiSifrem123",
+    newPassword: "YeniGuvenlisifremi456"
+  })
+})
+.then(response => response.json())
+.then(data => {
+  if (data.message) {
+    console.log('Şifre başarıyla değiştirildi');
+    // Kullanıcıyı bilgilendir
+  } else {
+    console.error('Hata:', data.error);
+    // Hata mesajını göster
+  }
+});
+```
+
+**Önemli Notlar:**
+- Bu API sadece şifre değiştirmek içindir
+- Profil güncellemesi için `/api/auth/update` kullanın
+- Şifre unuttum için `/api/auth/forgot-password` kullanın
+- Güvenlik açısından mevcut şifre mutlaka gereklidir
+
+## Müşteri Listeleme API'si (Pagination)
+
+### GET /api/customer?page=1&limit=10
+
+Kullanıcının müşterilerini sayfalama, arama ve sıralama ile listeler.
+
+**Authentication:** Bearer Token gerekli
+
+**Query Parameters:**
+- `page` (optional): Sayfa numarası (default: 1)
+- `limit` (optional): Sayfa başına kayıt sayısı (default: 10)
+- `search` (optional): Arama metni
+- `sortBy` (optional): Sıralama field'ı (default: 'createdAt')
+- `sortOrder` (optional): Sıralama yönü 'asc' veya 'desc' (default: 'desc')
+
+**Örnek Request:**
+```
+GET /api/customer?page=2&limit=5&search=ahmet&sortBy=name&sortOrder=asc
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "TcNumber": "12345678901",
+      "title": "Bay",
+      "name": "Ahmet",
+      "surname": "Yılmaz",
+      "taxAdministiration": "Kadıköy VD",
+      "address": "Atatürk Caddesi No:123",
+      "town": "Kadıköy",
+      "city": "İstanbul",
+      "country": "Türkiye",
+      "postCode": "34710",
+      "phone": "5551234567",
+      "email": "ahmet@example.com",
+      "partyName": "Ahmet Yılmaz",
+      "partyIdentification": "12345678901",
+      "invoiceCount": 5,
+      "isFavorite": false,
+      "isFromInvoice": true,
+      "createdAt": "2024-01-15T08:00:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 2,
+    "totalPages": 8,
+    "pageLimit": 5,
+    "totalItems": 38,
+    "hasNextPage": true,
+    "hasPrevPage": true,
+    "nextPage": 3,
+    "prevPage": 1
+  },
+  "filters": {
+    "search": "ahmet",
+    "sortBy": "name",
+    "sortOrder": "asc"
+  },
+  "summary": {
+    "totalCustomersInAccount": 45,
+    "filteredResults": 38,
+    "showingResults": 5
+  }
+}
+```
+
+**Arama Özellikleri:**
+Search parametresi şu field'larda arama yapar:
+- `name` - Müşteri adı
+- `surname` - Müşteri soyadı  
+- `title` - Ünvan
+- `partyName` - Fatura adı
+- `email` - Email adresi
+- `phone` - Telefon numarası
+- `TcNumber` - TC Kimlik No
+- `partyIdentification` - Vergi/TC No
+- `city` - Şehir
+- `town` - İlçe
+
+**Sıralama Seçenekleri:**
+- `createdAt` - Oluşturulma tarihi (default)
+- `updatedAt` - Güncellenme tarihi
+- `name` - İsim
+- `surname` - Soyisim
+- `invoiceCount` - Fatura sayısı
+- `city` - Şehir
+
+**Kullanım Örnekleri:**
+```javascript
+// Basit listeleme
+fetch('/api/customer?page=1&limit=10', {
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+
+// Arama ile listeleme
+fetch('/api/customer?search=ahmet&page=1&limit=5', {
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+
+// Sıralama ile listeleme
+fetch('/api/customer?sortBy=invoiceCount&sortOrder=desc&page=1&limit=20', {
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+
+// Kombine kullanım
+const params = new URLSearchParams({
+  page: 1,
+  limit: 10,
+  search: 'istanbul',
+  sortBy: 'name',
+  sortOrder: 'asc'
+});
+
+fetch(`/api/customer?${params}`, {
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+```
+
+**Frontend Pagination Örneği:**
+```javascript
+function loadCustomers(page = 1, limit = 10, search = '') {
+  const url = `customer?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`;
+  
+  fetch(url, {
+    headers: {
+      'Authorization': 'Bearer ' + localStorage.getItem('token')
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      displayCustomers(data.data);
+      updatePagination(data.pagination);
+    }
+  });
+}
+
+function updatePagination(pagination) {
+  document.getElementById('current-page').textContent = pagination.currentPage;
+  document.getElementById('total-pages').textContent = pagination.totalPages;
+  document.getElementById('next-btn').disabled = !pagination.hasNextPage;
+  document.getElementById('prev-btn').disabled = !pagination.hasPrevPage;
+}
+```
+
+## Müşteri Sayısı API'si
+
+### GET /api/customer/count
+
+Kullanıcının toplam müşteri sayısını ve detaylı istatistikleri döner.
+
+**Authentication:** Bearer Token gerekli
+
+**Query Parameters:**
+- `search` (optional): Arama metni (filtrelenmiş sayı için)
+
+**Örnek Request:**
+```
+GET /api/customer/count
+GET /api/customer/count?search=ahmet
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalCustomers": 45,
+    "filteredCount": null,
+    "favoriteCustomers": 8,
+    "fromInvoiceCustomers": 32,
+    "manuallyAddedCustomers": 13
+  },
+  "filters": {
+    "search": null
+  },
+  "lastUpdated": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Arama ile Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalCustomers": 45,
+    "filteredCount": 12,
+    "favoriteCustomers": 8,
+    "fromInvoiceCustomers": 32,
+    "manuallyAddedCustomers": 13
+  },
+  "filters": {
+    "search": "ahmet"
+  },
+  "lastUpdated": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Response Açıklaması:**
+- `totalCustomers`: Toplam müşteri sayısı
+- `filteredCount`: Arama sonucu bulunan müşteri sayısı (search varsa)
+- `favoriteCustomers`: Favori olarak işaretlenen müşteri sayısı
+- `fromInvoiceCustomers`: Faturalardan otomatik eklenen müşteri sayısı
+- `manuallyAddedCustomers`: Manuel eklenen müşteri sayısı
+
+**Kullanım Örnekleri:**
+```javascript
+// Toplam müşteri sayısını al
+fetch('/api/customer/count', {
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Toplam müşteri:', data.data.totalCustomers);
+  console.log('Favori müşteri:', data.data.favoriteCustomers);
+});
+
+// Arama sonucu müşteri sayısını al
+fetch('/api/customer/count?search=istanbul', {
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Toplam:', data.data.totalCustomers);
+  console.log('Arama sonucu:', data.data.filteredCount);
+});
+
+// Dashboard için özet bilgiler
+async function loadDashboardStats() {
+  const response = await fetch('/api/customer/count', {
+    headers: {
+      'Authorization': 'Bearer ' + localStorage.getItem('token')
+    }
+  });
+  
+  const data = await response.json();
+  
+  if (data.success) {
+    document.getElementById('total-customers').textContent = data.data.totalCustomers;
+    document.getElementById('favorite-customers').textContent = data.data.favoriteCustomers;
+    document.getElementById('invoice-customers').textContent = data.data.fromInvoiceCustomers;
+  }
+}
+```
+
+**Faydaları:**
+- ⚡ **Hızlı**: Sadece sayı bilgilerini döndürür, veri transferi minimal
+- 📊 **Detaylı İstatistik**: Farklı kategorilerde müşteri sayıları
+- 🔍 **Arama Desteği**: Filtrelenmiş sonuç sayısı
+- 🎯 **Dashboard İçin İdeal**: Özet bilgiler için mükemmel
+
