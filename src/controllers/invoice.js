@@ -1087,10 +1087,28 @@ async function searchInvoices(req, res) {
       });
     }
 
-    const totalAmount = allInvoices.reduce((sum, invoice) => {
+    // Filtrelenmiş faturaları kategorilere ayır
+    const incomingInvoices = allInvoices.filter(inv => inv.type === 'incoming');
+    const outgoingInvoices = allInvoices.filter(inv => inv.type === 'outgoing');
+    const draftInvoices = allInvoices.filter(inv => inv.type === 'draft');
+
+    // Her kategori için tutar hesapla
+    const incomingAmount = incomingInvoices.reduce((sum, invoice) => {
       const amount = parseFloat(invoice.payableAmount || 0);
       return sum + amount;
     }, 0);
+
+    const outgoingAmount = outgoingInvoices.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.payableAmount || 0);
+      return sum + amount;
+    }, 0);
+
+    const draftAmount = draftInvoices.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.payableAmount || 0);
+      return sum + amount;
+    }, 0);
+
+    const totalAmount = incomingAmount + outgoingAmount + draftAmount;
 
     allInvoices.sort((a, b) => {
       const dateA = new Date(a.issueDate || a.createDate || 0);
@@ -1099,12 +1117,26 @@ async function searchInvoices(req, res) {
     });
 
     res.status(200).json({
+      summary: {
+        total: {
+          count: allInvoices.length,
+          totalAmount: Math.round(totalAmount * 100) / 100
+        },
+        incoming: {
+          count: incomingInvoices.length,
+          totalAmount: Math.round(incomingAmount * 100) / 100
+        },
+        outgoing: {
+          count: outgoingInvoices.length,
+          totalAmount: Math.round(outgoingAmount * 100) / 100
+        },
+        drafts: {
+          count: draftInvoices.length,
+          totalAmount: Math.round(draftAmount * 100) / 100
+        }
+      },
       invoices: allInvoices,
       totalCount: allInvoices.length,
-      summary: {
-        count: allInvoices.length,
-        totalAmount: Math.round(totalAmount * 100) / 100
-      },
       filters: {
         startDate: startDate || null,
         endDate: endDate || null,
