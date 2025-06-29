@@ -3,12 +3,12 @@ import jwt from "jsonwebtoken";
 import crypto from 'crypto';
 import User from "../models/User.js";
 import { secret_key } from "../config/env/index.js";
-import { sendPasswordResetEmail, sendPasswordChangedEmail } from '../services/emailService.js';
+import { sendPasswordResetEmail, sendPasswordChangedEmail, sendWelcomeEmail } from '../services/emailService.js';
 
 async function register(req, res) {
   try {
     const userBody = req.body;
-    const { email, password } = userBody;
+    const { email, password, fullName } = userBody;
 
     const existingUser = await User.findOne({ email })
     if (existingUser) {
@@ -41,7 +41,19 @@ async function register(req, res) {
     const user = new User({ ...userBody, password: hashedPassword });
     
     await user.save();
-    res.status(201).send("Kullanıcı başarıyla oluşturuldu");
+
+    // Hoşgeldin maili gönder (hata olsa da kayıt işlemi devam etsin)
+    try {
+      await sendWelcomeEmail(email, fullName);
+    } catch (emailError) {
+      console.error('Hoşgeldin maili gönderilemedi:', emailError);
+      // Email hatası olsa da kullanıcı kayıt işlemi başarılı sayılır
+    }
+
+    res.status(201).json({ 
+      message: "Kullanıcı başarıyla oluşturuldu",
+      emailSent: true // Frontend'e email gönderildiğini bildir
+    });
   } catch (error) {
     console.error(error);
     res

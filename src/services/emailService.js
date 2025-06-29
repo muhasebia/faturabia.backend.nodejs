@@ -130,7 +130,45 @@ export const sendPasswordChangedEmail = async (email, userName) => {
   }
 };
 
+// Hoşgeldin maili gönder
+export const sendWelcomeEmail = async (email, userName) => {
+  try {
+    const mailOptions = {
+      from: `"Faturabia" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@muhasebia.com'}>`,
+      to: email,
+      subject: 'Hoşgeldiniz! Hesabınız Başarıyla Oluşturuldu - Faturabia',
+      html: getWelcomeEmailTemplate(userName, email),
+      text: `
+        Merhaba ${userName},
+        
+        Faturabia'ya hoş geldiniz! 🎉
+        
+        Hesabınız başarıyla oluşturuldu ve artık tüm özelliklerimizden yararlanabilirsiniz.
+        
+        Email: ${email}
+        
+        Faturabia ile neler yapabilirsiniz:
+        • E-Fatura ve E-Arşiv entegrasyonu
+        • Müşteri yönetimi
+        • Fatura takibi ve raporlama
+        • Gelir-gider analizi
+        • Kar/zarar hesaplama
+        
+        Herhangi bir sorunuz olursa bizimle iletişime geçmekten çekinmeyin.
+        
+        Faturabia Ekibi
+      `
+    };
 
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Hoşgeldin maili gönderildi:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('❌ SMTP hoşgeldin maili gönderme hatası:', error);
+    // Bu mail gönderilmese de kullanıcı kayıt işlemi devam etsin
+    return { success: false, error: error.message };
+  }
+};
 
 // Şifre sıfırlama email template'i - Modern tasarım
 const getPasswordResetEmailTemplate = (userName, resetUrl, resetToken) => {
@@ -679,4 +717,283 @@ const getPasswordChangedEmailTemplate = (userName) => {
   `;
 };
 
-export default { sendPasswordResetEmail, sendPasswordChangedEmail }; 
+// Hoşgeldin maili template'i - Şifre sıfırlama ile aynı tasarım
+const getWelcomeEmailTemplate = (userName, userEmail) => {
+  return `
+    <!DOCTYPE html>
+    <html lang="tr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Hoşgeldiniz - Faturabia</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                background-color: #f8f9fa;
+                padding: 20px;
+            }
+            
+            .email-container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: #ffffff;
+                border-radius: 16px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                overflow: hidden;
+            }
+            
+            .header {
+                background: linear-gradient(135deg, #2C9F1B 0%, #34a85a 100%);
+                padding: 40px 30px;
+                text-align: center;
+                color: white;
+            }
+            
+            .logo {
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 20px;
+                background: rgba(255,255,255,0.95);
+                border-radius: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+            
+            .logo img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                border-radius: 12px;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+                font-weight: 700;
+                margin-bottom: 10px;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            .header p {
+                font-size: 16px;
+                opacity: 0.9;
+            }
+            
+            .content {
+                padding: 40px 30px;
+            }
+            
+            .welcome-section {
+                background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+                border-left: 4px solid #2C9F1B;
+                padding: 30px;
+                border-radius: 12px;
+                margin: 30px 0;
+                text-align: center;
+            }
+            
+            .welcome-icon {
+                font-size: 48px;
+                margin-bottom: 15px;
+            }
+            
+            .welcome-title {
+                font-size: 24px;
+                color: #2C9F1B;
+                font-weight: 700;
+                margin-bottom: 10px;
+            }
+            
+            .welcome-message {
+                color: #155724;
+                font-size: 16px;
+                line-height: 1.6;
+            }
+            
+            .features-section {
+                background: #f8f9fa;
+                padding: 30px;
+                border-radius: 12px;
+                margin: 30px 0;
+            }
+            
+            .features-title {
+                font-size: 20px;
+                color: #2C9F1B;
+                font-weight: 700;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+            
+            .feature-item {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+                padding: 15px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            }
+            
+            .feature-icon {
+                font-size: 24px;
+                margin-right: 15px;
+                width: 40px;
+                text-align: center;
+            }
+            
+            .feature-text {
+                font-size: 16px;
+                color: #333;
+            }
+            
+            .account-info {
+                background: #e8f5e8;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 20px 0;
+                border: 1px solid #c3e6cb;
+            }
+            
+            .info-item {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+                font-size: 14px;
+            }
+            
+            .info-label {
+                color: #666666;
+                font-weight: 600;
+            }
+            
+            .info-value {
+                color: #2C9F1B;
+                font-weight: 600;
+            }
+            
+            .footer {
+                background: #f8f9fa;
+                padding: 30px;
+                text-align: center;
+                border-top: 1px solid #e9ecef;
+            }
+            
+            .footer p {
+                color: #666666;
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+            
+            .footer .company {
+                color: #2C9F1B;
+                font-weight: 600;
+            }
+            
+            @media (max-width: 600px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                }
+                
+                .content, .header, .footer {
+                    padding: 20px;
+                }
+                
+                .features-section {
+                    padding: 20px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <div class="logo">
+                    <img src="https://i.hizliresim.com/b2svrer.png" alt="Faturabia Logo" />
+                </div>
+                <h1>Faturabia</h1>
+                <p>E-Fatura ve Muhasebe Çözümleri</p>
+            </div>
+            
+            <div class="content">
+                <div class="welcome-section">
+                    <div class="welcome-icon">🎉</div>
+                    <div class="welcome-title">Hoş Geldiniz!</div>
+                    <div class="welcome-message">
+                        Merhaba <strong>${userName}</strong>, Faturabia ailesine katıldığınız için çok mutluyuz! 
+                        Hesabınız başarıyla oluşturuldu ve artık tüm özelliklerimizden yararlanabilirsiniz.
+                    </div>
+                </div>
+                
+                <div class="account-info">
+                    <div class="info-item">
+                        <span class="info-label">📧 Email Adresiniz:</span>
+                        <span class="info-value">${userEmail}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">📅 Hesap Oluşturma:</span>
+                        <span class="info-value">${new Date().toLocaleString('tr-TR')}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">✅ Hesap Durumu:</span>
+                        <span class="info-value">Aktif</span>
+                    </div>
+                </div>
+                
+                <div class="features-section">
+                    <div class="features-title">Faturabia ile Neler Yapabilirsiniz?</div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-text"><strong>E-Fatura Entegrasyonu:</strong> Gelen ve giden e-faturalarınızı otomatik senkronize edin</div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">📁</div>
+                        <div class="feature-text"><strong>E-Arşiv Yönetimi:</strong> E-arşiv faturalarınızı kolayca yönetin</div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">👥</div>
+                        <div class="feature-text"><strong>Müşteri Yönetimi:</strong> Müşterilerinizi organize edin ve takip edin</div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">📈</div>
+                        <div class="feature-text"><strong>Gelir-Gider Analizi:</strong> Kar/zarar hesaplama ve detaylı raporlar</div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-text"><strong>Fatura İstatistikleri:</strong> Toplam tutarlar ve performans göstergeleri</div>
+                    </div>
+                </div>
+                
+                <p style="margin-top: 30px; font-size: 16px; color: #555; text-align: center;">
+                    Faturabia'yı seçtiğiniz için teşekkür ederiz. Herhangi bir sorunuz olursa bizimle iletişime geçmekten çekinmeyin.
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>Bu email otomatik olarak gönderilmiştir, lütfen yanıtlamayın.</p>
+                <p>© 2024 <span class="company">Faturabia</span> - Tüm hakları saklıdır.</p>
+                <p>Muhasebia Teknoloji çözümleri</p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
+};
+
+export default { sendPasswordResetEmail, sendPasswordChangedEmail, sendWelcomeEmail }; 
