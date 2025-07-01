@@ -4,7 +4,7 @@ import app from './src/app.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
-const uri = "mongodb://admin:Azat.eser123%21@92.249.61.156:27017/faturabia_dev?directConnection=true&authSource=admin"
+const uri = "mongodb://admin:Azat.eser123%21@92.249.61.156:27017/faturabia_prod?directConnection=true&authSource=admin"
 
 async function connectDB() {
     try{
