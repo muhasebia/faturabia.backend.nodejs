@@ -18,7 +18,7 @@ router.use('/dashboard', dashboardRouter)
 router.get('/', (req, res) => {
     res.json({
         message: 'API - 👋🌎🌍🌏',
-        version: '1.0.2'
+        version: '1.0.3'
     })
 }
 )
