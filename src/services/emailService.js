@@ -27,41 +27,6 @@ const transporter = nodemailer.createTransport({
   logger: process.env.NODE_ENV === 'development'
 });
 
-// Test bağlantısı
-transporter.verify((error, success) => {
-  if (error) {
-    console.log('❌ SMTP sunucusu bağlantı hatası:', error.message);
-    console.log('📧 SMTP ayarlarınızı kontrol edin:');
-    console.log(`   Host: ${process.env.SMTP_HOST || 'mail.muhasebia.com'}`);
-    console.log(`   Port: ${process.env.SMTP_PORT || '587'}`);
-    console.log(`   User: ${process.env.SMTP_USER || 'no-reply@muhasebia.com'}`);
-    console.log(`   Secure: ${process.env.SMTP_SECURE || 'false'}`);
-    console.log(`   RequireTLS: true`);
-    
-    // Yaygın sorunlar için öneriler
-    if (error.message.includes('ENOTFOUND')) {
-      console.log('💡 DNS çözümleme sorunu. Şunları deneyin:');
-      console.log('   - İnternet bağlantınızı kontrol edin');
-      console.log('   - Farklı DNS sunucusu deneyin (8.8.8.8)');
-      console.log('   - VPN kullanıyorsanız kapatın');
-    }
-    if (error.message.includes('ETIMEDOUT')) {
-      console.log('💡 Bağlantı zaman aşımı. Şunları deneyin:');
-      console.log('   - Firewall ayarlarını kontrol edin');
-      console.log('   - Port 587 açık mı kontrol edin');
-    }
-    if (error.message.includes('ECONNREFUSED')) {
-      console.log('💡 Bağlantı reddedildi. Şunları deneyin:');
-      console.log('   - Port numarasını kontrol edin (587, 465, 25)');
-      console.log('   - Mail sunucusu aktif mi kontrol edin');
-    }
-  } else {
-    console.log('✅ SMTP sunucusu hazır');
-    console.log(`📧 Mail sunucusu: ${process.env.SMTP_HOST || 'mail.muhasebia.com'}:${process.env.SMTP_PORT || '587'}`);
-    console.log(`🔐 Güvenlik: ${process.env.SMTP_SECURE === 'true' ? 'SSL/TLS' : 'STARTTLS'}`);
-  }
-});
-
 // Şifre sıfırlama maili gönder
 export const sendPasswordResetEmail = async (email, resetToken, userName) => {
   try {

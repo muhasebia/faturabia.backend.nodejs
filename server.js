@@ -4,14 +4,24 @@ import app from './src/app.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
-const uri = "mongodb://admin:Azat.eser123%21@92.249.61.156:27017/faturabia_prod?directConnection=true&authSource=admin"
+
+ // DEVELOPMENT
+// const uri = "mongodb+srv://azatesser:S8moLZbgcCOASpOt@developer.ffzdqhy.mongodb.net/"
+
+PRODUCTION
+const uri = "mongodb+srv://azatesser:kmcp6IfIP3ZdrFAl@prod.l2fgnjn.mongodb.net/"
+
 
 async function connectDB() {
     try{
-        await mongoose.connect(uri);
+        await mongoose.connect(uri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        })
         console.log('🥂 Connected to MongoDB');
     } catch (error) {
         console.error(`❌ Error connecting to MongoDB: ${error.message}`);
+        process.exit(1);
     }
 }
 

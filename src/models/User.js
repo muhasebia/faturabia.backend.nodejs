@@ -27,6 +27,11 @@ const UserScheme = new mongoose.Schema({
   customers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Customer' }],
   products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
   invoices: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Invoice' }],
+  options: [{
+    type: String,
+    enum: ['nesApiWarningShown'],
+    default: []
+  }],
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
   createdAt: {type: Date, default: Date.now},

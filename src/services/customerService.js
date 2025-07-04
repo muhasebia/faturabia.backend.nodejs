@@ -4,19 +4,14 @@ import UserModel from '../models/User.js';
 // Faturadan müşteri bilgilerini çıkar ve kaydet
 export async function saveCustomersFromInvoices(invoices, userId) {
   if (!invoices || !Array.isArray(invoices) || !userId) {
-    console.log('saveCustomersFromInvoices: Geçersiz parametreler', { 
-      invoicesLength: invoices?.length, 
-      userId 
-    });
+
     return;
   }
 
-  console.log(`saveCustomersFromInvoices: ${invoices.length} fatura işlenecek, userId: ${userId}`);
 
   // User'ı bul
   const user = await UserModel.findById(userId);
   if (!user) {
-    console.log('saveCustomersFromInvoices: User bulunamadı');
     return;
   }
 
@@ -76,7 +71,6 @@ export async function saveCustomersFromInvoices(invoices, userId) {
        }
        
        if (!partyData || !partyData.partyIdentification) {
-         console.log(`Fatura ${processedCount}: Party identification bulunamadı`);
          continue;
        }
 
@@ -84,15 +78,11 @@ export async function saveCustomersFromInvoices(invoices, userId) {
        const partyName = partyData.partyName;
       
       if (!partyIdentification) {
-        console.log(`Fatura ${processedCount}: partyIdentification bulunamadı (${partyType})`);
         continue;
       }
 
-      console.log(`Fatura ${processedCount}: Müşteri bulundu (${partyType}) - ${partyName} (${partyIdentification})`);
-
       // Bu senkronizasyonda zaten işlendi mi kontrol et
       if (processedTcNumbers.has(partyIdentification)) {
-        console.log(`Fatura ${processedCount}: TC ${partyIdentification} bu senkronizasyonda zaten işlendi, atlanıyor`);
         skippedCount++;
         continue;
       }
@@ -126,7 +116,6 @@ export async function saveCustomersFromInvoices(invoices, userId) {
           }
         }
         
-        console.log(`Yeni müşteri kaydediliyor: ${displayName}`);
 
         const newCustomer = new CustomerModel({
           TcNumber: partyIdentification,
@@ -149,12 +138,10 @@ export async function saveCustomersFromInvoices(invoices, userId) {
         // Yeni müşteri ID'sini topla (toplu ekleme için)
         newCustomerIds.push(newCustomer._id);
         
-        console.log(`Müşteri kaydedildi: ${displayName} (ID: ${newCustomer._id})`);
       } else {
         const existingDisplayName = existingCustomer.partyName || 
           (existingCustomer.name + ' ' + existingCustomer.surname).trim() || 
           existingCustomer.partyIdentification;
-        console.log(`Müşteri zaten mevcut: ${existingDisplayName}`);
         skippedCount++;
       }
     } catch (error) {
@@ -165,7 +152,6 @@ export async function saveCustomersFromInvoices(invoices, userId) {
   
   // Tüm yeni müşterileri User'ın customers array'ine toplu olarak ekle
   if (newCustomerIds.length > 0) {
-    console.log(`${newCustomerIds.length} yeni müşteri User'a ekleniyor...`);
     
     // User'ın customers array'ine yeni müşteri ID'lerini ekle
     user.customers.push(...newCustomerIds);
@@ -241,7 +227,6 @@ export async function updateCustomerInvoiceCounts(userId) {
       }
     }
 
-    console.log(`${updatedCount} müşterinin fatura sayısı güncellendi`);
   } catch (error) {
     console.error('Müşteri fatura sayıları güncellenirken hata:', error.message);
   }

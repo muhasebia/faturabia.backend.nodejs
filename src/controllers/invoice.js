@@ -16,7 +16,6 @@ async function fetchIncomingInvoices(req, res) {
 
     const nestenService = new NestenService(user.nesApiKey);
     
-    console.log('Gelen faturalar çekiliyor...');
     
     const invoices = await nestenService.fetchAllIncomingInvoices();
     
@@ -989,6 +988,7 @@ async function searchInvoices(req, res) {
       invoiceType     
     } = req.query;
     
+
     const userInvoices = await UserInvoices.findOne({ userId });
     if (!userInvoices) {
       return res.status(200).json({
@@ -1037,23 +1037,34 @@ async function searchInvoices(req, res) {
       allInvoices = allInvoices.filter(invoice => invoice.source === invoiceType);
     }
 
-    if (startDate) {
-      const start = new Date(startDate);
+    // UTC offset'i düzelt ve tarih filtreleme
+    if (startDate || endDate) {
+      // Türkiye için UTC offset (yaz saati: +3, kış saati: +2)
+      const now = new Date();
+      const turkeyOffset = now.getTimezoneOffset() === -180 ? 3 : 2;
+
       allInvoices = allInvoices.filter(invoice => {
         const invoiceDate = new Date(invoice.issueDate || invoice.createDate);
-        return invoiceDate >= start;
+        
+        // Fatura tarihini Türkiye saatine çevir
+        const invoiceDateTR = new Date(invoiceDate.getTime() + (turkeyOffset * 60 * 60 * 1000));
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          if (invoiceDateTR < start) return false;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          if (invoiceDateTR > end) return false;
+        }
+        
+        return true;
       });
+
     }
 
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      allInvoices = allInvoices.filter(invoice => {
-        const invoiceDate = new Date(invoice.issueDate || invoice.createDate);
-        return invoiceDate <= end;
-      });
-    }
-
+    // Tutar filtreleme
     if (minAmount) {
       const min = parseFloat(minAmount);
       allInvoices = allInvoices.filter(invoice => {
@@ -1070,6 +1081,7 @@ async function searchInvoices(req, res) {
       });
     }
 
+    // Arama filtreleme
     if (search && search.trim()) {
       const searchTerm = search.trim().toLowerCase();
       allInvoices = allInvoices.filter(invoice => {
@@ -1110,6 +1122,7 @@ async function searchInvoices(req, res) {
 
     const totalAmount = incomingAmount + outgoingAmount + draftAmount;
 
+    // Tarihe göre sırala
     allInvoices.sort((a, b) => {
       const dateA = new Date(a.issueDate || a.createDate || 0);
       const dateB = new Date(b.issueDate || b.createDate || 0);

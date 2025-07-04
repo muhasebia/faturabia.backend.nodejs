@@ -393,6 +393,12 @@ async function getUser(req, res) {
       return res.status(404).json({ error: 'Kullanıcı bulunamadı' })
     }
 
+    // Eğer options alanı yoksa otomatik olarak boş array ekle
+    if (!user.options) {
+      user.options = [];
+      await user.save();
+    }
+
     res.status(200).json(user)
   } catch (error) {
     res
@@ -488,4 +494,61 @@ async function changePassword(req, res) {
   }
 }
 
-export { register, login, updateUser, updateNESApiKey, getUser, forgotPassword, resetPassword, validateResetToken, changePassword }
+async function updateUserOptions(req, res) {
+  try {
+    const userId = req.userId;
+    const { option, action } = req.body; // action: 'add' veya 'remove'
+
+    // Validasyon
+    if (!option) {
+      return res.status(400).json({ error: 'Option gereklidir' });
+    }
+
+    if (!['add', 'remove'].includes(action)) {
+      return res.status(400).json({ error: 'Action add veya remove olmalıdır' });
+    }
+
+    // Geçerli option değerleri
+    const validOptions = ['nesApiWarningShown'];
+    if (!validOptions.includes(option)) {
+      return res.status(400).json({ error: 'Geçersiz option değeri' });
+    }
+
+    // Kullanıcıyı bul
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+
+    // Eğer options alanı yoksa otomatik olarak boş array ekle
+    if (!user.options) {
+      user.options = [];
+    }
+
+    // Options array'ini güncelle
+    if (action === 'add') {
+      if (!user.options.includes(option)) {
+        user.options.push(option);
+      }
+    } else if (action === 'remove') {
+      user.options = user.options.filter(opt => opt !== option);
+    }
+
+    user.updatedAt = new Date();
+    await user.save();
+
+    res.status(200).json({ 
+      message: 'Kullanıcı seçenekleri başarıyla güncellendi',
+      options: user.options
+    });
+
+  } catch (error) {
+    console.error('Options güncelleme hatası:', error);
+    res.status(500).json({ 
+      error: 'Options güncellenirken bir hata oluştu',
+      message: error.message
+    });
+  }
+}
+
+export { register, login, updateUser, updateNESApiKey, getUser, forgotPassword, resetPassword, validateResetToken, changePassword, updateUserOptions }
