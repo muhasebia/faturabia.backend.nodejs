@@ -8,7 +8,7 @@ dotenv.config();
  // DEVELOPMENT
 // const uri = "mongodb+srv://azatesser:S8moLZbgcCOASpOt@developer.ffzdqhy.mongodb.net/"
 
-PRODUCTION
+// PRODUCTION
 const uri = "mongodb+srv://azatesser:kmcp6IfIP3ZdrFAl@prod.l2fgnjn.mongodb.net/"
 
 
