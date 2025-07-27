@@ -1,7 +1,7 @@
 import express from 'express';
 import verifyToken from '../middlewares/authMiddleware.js';
 import checkUser from '../middlewares/checkUser.js';
-import { fetchIncomingInvoices, fetchOutgoingInvoices, fetchDraftInvoices, fetchEArchiveInvoices, fetchEArchiveDraftInvoices, fetchAllInvoices, getInvoices, getInvoice, getIncomingInvoices, getOutgoingInvoices, getDraftInvoices, getAllInvoicesFormatted, searchInvoices, getUserStatistics } from '../controllers/invoice.js';
+import { fetchIncomingInvoices, fetchOutgoingInvoices, fetchDraftInvoices, fetchEArchiveInvoices, fetchEArchiveDraftInvoices, fetchAllInvoices, getInvoices, getInvoice, getInvoiceByNesId, getIncomingInvoices, getOutgoingInvoices, getDraftInvoices, getAllInvoicesFormatted, searchInvoices, getUserStatistics } from '../controllers/invoice.js';
 
 const router = express.Router();
 
@@ -46,6 +46,9 @@ router.get('/statistics', verifyToken, checkUser, getUserStatistics);
 
 // Fatura arama ve filtreleme (pagination yok, tüm sonuçlar)
 router.get('/search', verifyToken, checkUser, searchInvoices);
+
+// NES fatura ID ile belirli bir faturayı getir
+router.get('/nes/:nesId', verifyToken, checkUser, getInvoiceByNesId);
 
 // Belirli bir faturayı UUID ile getir (bu route en sonda olmalı)
 router.get('/:uuid', verifyToken, checkUser, getInvoice);

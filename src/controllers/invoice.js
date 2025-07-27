@@ -46,16 +46,22 @@ async function fetchIncomingInvoices(req, res) {
       const uuid = invoiceData.uuid || invoiceData.id;
       if (!uuid) continue;
 
+      // NES fatura ID'sini explicit olarak ekle
+      const processedInvoiceData = {
+        ...invoiceData,
+        nesInvoiceId: uuid // NES API'den gelen benzersiz ID
+      };
+
       if (existingUuids.has(uuid)) {
         const index = userInvoices.eFatura.incoming.findIndex(inv => 
           (inv.uuid || inv.id) === uuid
         );
         if (index !== -1) {
-          userInvoices.eFatura.incoming[index] = invoiceData;
+          userInvoices.eFatura.incoming[index] = processedInvoiceData;
           updatedCount++;
         }
       } else {
-        userInvoices.eFatura.incoming.push(invoiceData);
+        userInvoices.eFatura.incoming.push(processedInvoiceData);
         newCount++;
       }
     }
@@ -125,16 +131,22 @@ async function fetchOutgoingInvoices(req, res) {
       const uuid = invoiceData.uuid || invoiceData.id;
       if (!uuid) continue;
 
+      // NES fatura ID'sini explicit olarak ekle
+      const processedInvoiceData = {
+        ...invoiceData,
+        nesInvoiceId: uuid // NES API'den gelen benzersiz ID
+      };
+
       if (existingUuids.has(uuid)) {
         const index = userInvoices.eFatura.outgoing.findIndex(inv => 
           (inv.uuid || inv.id) === uuid
         );
         if (index !== -1) {
-          userInvoices.eFatura.outgoing[index] = invoiceData;
+          userInvoices.eFatura.outgoing[index] = processedInvoiceData;
           updatedCount++;
         }
       } else {
-        userInvoices.eFatura.outgoing.push(invoiceData);
+        userInvoices.eFatura.outgoing.push(processedInvoiceData);
         newCount++;
       }
     }
@@ -205,16 +217,22 @@ async function fetchDraftInvoices(req, res) {
       const uuid = invoiceData.uuid || invoiceData.id;
       if (!uuid) continue;
 
+      // NES fatura ID'sini explicit olarak ekle
+      const processedInvoiceData = {
+        ...invoiceData,
+        nesInvoiceId: uuid // NES API'den gelen benzersiz ID
+      };
+
       if (existingUuids.has(uuid)) {
         const index = userInvoices.eFatura.outgoingDraft.findIndex(inv => 
           (inv.uuid || inv.id) === uuid
         );
         if (index !== -1) {
-          userInvoices.eFatura.outgoingDraft[index] = invoiceData;
+          userInvoices.eFatura.outgoingDraft[index] = processedInvoiceData;
           updatedCount++;
         }
       } else {
-        userInvoices.eFatura.outgoingDraft.push(invoiceData);
+        userInvoices.eFatura.outgoingDraft.push(processedInvoiceData);
         newCount++;
       }
     }
@@ -285,16 +303,22 @@ async function fetchEArchiveInvoices(req, res) {
       const uuid = invoiceData.uuid || invoiceData.id;
       if (!uuid) continue;
 
+      // NES fatura ID'sini explicit olarak ekle
+      const processedInvoiceData = {
+        ...invoiceData,
+        nesInvoiceId: uuid // NES API'den gelen benzersiz ID
+      };
+
       if (existingUuids.has(uuid)) {
         const index = userInvoices.eArchive.outgoing.findIndex(inv => 
           (inv.uuid || inv.id) === uuid
         );
         if (index !== -1) {
-          userInvoices.eArchive.outgoing[index] = invoiceData;
+          userInvoices.eArchive.outgoing[index] = processedInvoiceData;
           updatedCount++;
         }
       } else {
-        userInvoices.eArchive.outgoing.push(invoiceData);
+        userInvoices.eArchive.outgoing.push(processedInvoiceData);
         newCount++;
       }
     }
@@ -368,16 +392,22 @@ async function fetchEArchiveDraftInvoices(req, res) {
       const uuid = invoiceData.uuid || invoiceData.id;
       if (!uuid) continue;
 
+      // NES fatura ID'sini explicit olarak ekle
+      const processedInvoiceData = {
+        ...invoiceData,
+        nesInvoiceId: uuid // NES API'den gelen benzersiz ID
+      };
+
       if (existingUuids.has(uuid)) {
         const index = userInvoices.eArchive.outgoingDraft.findIndex(inv => 
           (inv.uuid || inv.id) === uuid
         );
         if (index !== -1) {
-          userInvoices.eArchive.outgoingDraft[index] = invoiceData;
+          userInvoices.eArchive.outgoingDraft[index] = processedInvoiceData;
           updatedCount++;
         }
       } else {
-        userInvoices.eArchive.outgoingDraft.push(invoiceData);
+        userInvoices.eArchive.outgoingDraft.push(processedInvoiceData);
         newCount++;
       }
     }
@@ -514,14 +544,20 @@ async function fetchAllInvoices(req, res) {
         const uuid = invoiceData.uuid || invoiceData.id;
         if (!uuid) continue;
 
+        // NES fatura ID'sini explicit olarak ekle
+        const processedInvoiceData = {
+          ...invoiceData,
+          nesInvoiceId: uuid // NES API'den gelen benzersiz ID
+        };
+
         if (existingUuids.has(uuid)) {
           const index = targetArray.findIndex(inv => (inv.uuid || inv.id) === uuid);
           if (index !== -1) {
-            targetArray[index] = invoiceData;
+            targetArray[index] = processedInvoiceData;
             results[type].updated++;
           }
         } else {
-          targetArray.push(invoiceData);
+          targetArray.push(processedInvoiceData);
           results[type].new++;
         }
       }
@@ -671,7 +707,7 @@ async function getInvoice(req, res) {
     ];
     
     const invoice = allInvoices.find(inv => 
-      (inv.uuid || inv.id) === uuid
+      (inv.uuid || inv.id) === uuid || inv.nesInvoiceId === uuid
     );
     
     if (!invoice) {
@@ -681,6 +717,42 @@ async function getInvoice(req, res) {
     res.status(200).json(invoice);
   } catch (error) {
     console.error('Fatura getirilirken hata:', error);
+    res.status(500).json({
+      error: 'Fatura getirilirken bir hata oluştu.',
+      message: error.message
+    });
+  }
+}
+
+// NES Fatura ID ile fatura getir - daha hızlı ve kullanışlı method
+async function getInvoiceByNesId(req, res) {
+  try {
+    const userId = req.userId;
+    const { nesId } = req.params;
+    
+    const userInvoices = await UserInvoices.findOne({ userId });
+    
+    if (!userInvoices) {
+      return res.status(404).json({ error: 'Kullanıcıya ait fatura bulunamadı.' });
+    }
+
+    // Model method'unu kullan
+    const result = userInvoices.findInvoiceByNesId(nesId);
+    
+    if (!result) {
+      return res.status(404).json({ 
+        error: 'Belirtilen NES fatura ID\'si ile fatura bulunamadı.',
+        nesInvoiceId: nesId
+      });
+    }
+    
+    res.status(200).json({
+      invoice: result.invoice,
+      location: result.location,
+      nesInvoiceId: nesId
+    });
+  } catch (error) {
+    console.error('NES ID ile fatura getirilirken hata:', error);
     res.status(500).json({
       error: 'Fatura getirilirken bir hata oluştu.',
       message: error.message
@@ -1281,6 +1353,7 @@ export {
   fetchAllInvoices, 
   getInvoices, 
   getInvoice,
+  getInvoiceByNesId,
   getIncomingInvoices,
   getOutgoingInvoices,
   getDraftInvoices,
