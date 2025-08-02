@@ -1,7 +1,7 @@
 import express from 'express';
 import verifyToken from '../middlewares/authMiddleware.js';
 import checkUser from '../middlewares/checkUser.js';
-import { fetchAllInvoices, getAllInvoicesLive, getIncomingInvoicesLive, getOutgoingInvoicesLive, getUserStatistics } from '../controllers/invoice.js';
+import { fetchAllInvoices, getAllInvoicesLive, getIncomingInvoicesLive, getOutgoingInvoicesLive, getUserStatistics, searchAllInvoices } from '../controllers/invoice.js';
 
 const router = express.Router();
 
@@ -19,5 +19,8 @@ router.get('/all', verifyToken, checkUser, getAllInvoicesLive);
 
 // İstatistikler - Hesaplanmış istatistikleri getir
 router.get('/statistics', verifyToken, checkUser, getUserStatistics);
+
+// Tüm faturaları ara - Pagination olmadan tüm sonuçları getir
+router.get('/search', verifyToken, checkUser, searchAllInvoices);
 
 export default router; 

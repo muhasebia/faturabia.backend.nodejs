@@ -12,6 +12,8 @@ class NestenService {
       page = 1,
       pageSize = 99,
       sort = 'CreatedAt desc',
+      startDate = '2000-01-01',
+      endDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
       ...otherParams
     } = options;
 
@@ -19,6 +21,8 @@ class NestenService {
       page: page.toString(),
       pageSize: pageSize.toString(),
       sort,
+      startDate,
+      endDate,
       ...otherParams
     });
 
@@ -52,6 +56,8 @@ class NestenService {
       page = 1,
       pageSize = 99,
       sort = 'CreatedAt desc',
+      startDate = '2000-01-01',
+      endDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
       ...otherParams
     } = options;
 
@@ -59,6 +65,8 @@ class NestenService {
       page: page.toString(),
       pageSize: pageSize.toString(),
       sort,
+      startDate,
+      endDate,
       ...otherParams
     });
 
@@ -132,6 +140,8 @@ class NestenService {
       page = 1,
       pageSize = 99,
       sort = 'CreatedAt desc',
+      startDate = '2000-01-01',
+      endDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
       ...otherParams
     } = options;
 
@@ -139,10 +149,13 @@ class NestenService {
       page: page.toString(),
       pageSize: pageSize.toString(),
       sort,
+      startDate,
+      endDate,
       ...otherParams
     });
 
     const url = `${this.eArchiveBaseUrl}/invoices?${params}`;
+
 
     try {
       const response = await fetch(url, {
