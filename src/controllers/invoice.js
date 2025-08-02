@@ -2,95 +2,6 @@ import NestenService from '../services/nestenService.js';
 import UserInvoices from '../models/UserInvoices.js';
 import User from '../models/User.js';
 
-async function getIncomingInvoicesForStats(req, res) {
-  try {
-    const userId = req.userId;
-    
-    const userInvoices = await UserInvoices.findOne({ userId });
-    if (!userInvoices) {
-      return res.status(200).json({
-        invoices: [],
-        totalCount: 0,
-        totalAmount: 0
-      });
-    }
-
-    const gelenFaturalar = [
-      ...(userInvoices.eFatura.incoming || []),
-      ...(userInvoices.eArchive.incoming || [])
-    ];
-
-    const totalAmount = gelenFaturalar.reduce((sum, invoice) => {
-      const amount = parseFloat(invoice.payableAmount || 0);
-      return sum + amount;
-    }, 0);
-
-    gelenFaturalar.sort((a, b) => {
-      const dateA = new Date(a.issueDate || a.createDate || 0);
-      const dateB = new Date(b.issueDate || b.createDate || 0);
-      return dateB - dateA;
-    });
-
-    res.status(200).json({
-      invoices: gelenFaturalar,
-      totalCount: gelenFaturalar.length,
-      totalAmount: Math.round(totalAmount * 100) / 100
-    });
-
-  } catch (error) {
-    console.error('Gelen faturalar getirilirken hata:', error);
-    res.status(500).json({
-      error: 'Gelen faturalar getirilirken hata oluştu.',
-      message: error.message
-    });
-  }
-}
-
-async function getOutgoingInvoicesForStats(req, res) {
-  try {
-    const userId = req.userId;
-    
-    const userInvoices = await UserInvoices.findOne({ userId });
-    if (!userInvoices) {
-      return res.status(200).json({
-        invoices: [],
-        totalCount: 0,
-        totalAmount: 0
-      });
-    }
-
-    const gidenFaturalar = [
-      ...(userInvoices.eFatura.outgoing || []),
-      ...(userInvoices.eArchive.outgoing || [])
-    ];
-
-    const totalAmount = gidenFaturalar.reduce((sum, invoice) => {
-      const amount = parseFloat(invoice.payableAmount || 0);
-      return sum + amount;
-    }, 0);
-
-    gidenFaturalar.sort((a, b) => {
-      const dateA = new Date(a.issueDate || a.createDate || 0);
-      const dateB = new Date(b.issueDate || b.createDate || 0);
-      return dateB - dateA;
-    });
-
-    res.status(200).json({
-      invoices: gidenFaturalar,
-      totalCount: gidenFaturalar.length,
-      totalAmount: Math.round(totalAmount * 100) / 100
-    });
-
-  } catch (error) {
-    console.error('Giden faturalar getirilirken hata:', error);
-    res.status(500).json({
-      error: 'Giden faturalar getirilirken hata oluştu.',
-      message: error.message
-    });
-  }
-}
-
-
 async function fetchAllInvoices(req, res) {
   try {
     const userId = req.userId;
@@ -104,14 +15,59 @@ async function fetchAllInvoices(req, res) {
 
     const nestenService = new NestenService(user.nesApiKey);
     
-    const results = {
-      incoming: { fetched: 0, new: 0, updated: 0, error: null },
-      outgoing: { fetched: 0, new: 0, updated: 0, error: null },
-      drafts: { fetched: 0, new: 0, updated: 0, error: null },
-      eArchive: { fetched: 0, new: 0, updated: 0, error: null },
-      eArchiveDrafts: { fetched: 0, new: 0, updated: 0, error: null }
-    };
+    // Sadece API'den veri çek, veritabanına kaydetme
+    const apiPromises = [
+      nestenService.fetchAllIncomingInvoices().then(data => ({ type: 'incoming', data })).catch(error => ({ type: 'incoming', error: error.message })),
+      nestenService.fetchAllOutgoingInvoices().then(data => ({ type: 'outgoing', data })).catch(error => ({ type: 'outgoing', error: error.message })),
+      nestenService.fetchAllDraftInvoices().then(data => ({ type: 'drafts', data })).catch(error => ({ type: 'drafts', error: error.message })),
+      nestenService.fetchAllEArchiveInvoices().then(data => ({ type: 'eArchive', data })).catch(error => ({ type: 'eArchive', error: error.message })),
+      nestenService.fetchAllEArchiveDraftInvoices().then(data => ({ type: 'eArchiveDrafts', data })).catch(error => ({ type: 'eArchiveDrafts', error: error.message }))
+    ];
 
+    const apiResults = await Promise.all(apiPromises);
+
+    // Sadece istatistik hesapla
+    let gelenFaturalar = [];
+    let gidenFaturalar = [];
+    let taslakFaturalar = [];
+    
+    for (const result of apiResults) {
+      const { type, data, error } = result;
+      
+      if (error || !data || !Array.isArray(data)) {
+        continue;
+      }
+
+      switch (type) {
+        case 'incoming':
+          gelenFaturalar.push(...data);
+          break;
+        case 'outgoing':
+        case 'eArchive':
+          gidenFaturalar.push(...data);
+          break;
+        case 'drafts':
+        case 'eArchiveDrafts':
+          taslakFaturalar.push(...data);
+          break;
+      }
+    }
+
+    // İstatistikleri hesapla
+    const gelenTutar = gelenFaturalar.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.payableAmount || 0);
+      return sum + amount;
+    }, 0);
+
+    const gidenTutar = gidenFaturalar.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.payableAmount || 0);
+      return sum + amount;
+    }, 0);
+
+    const toplamTutar = gelenTutar + gidenTutar;
+    const karZarar = gelenTutar - gidenTutar;
+
+    // Sadece istatistiği kaydet
     let userInvoices = await UserInvoices.findOne({ userId: userId });
     if (!userInvoices) {
       userInvoices = new UserInvoices({ 
@@ -122,182 +78,88 @@ async function fetchAllInvoices(req, res) {
       });
     }
 
-    if (!userInvoices.lastFetchDate) {
-      userInvoices.lastFetchDate = {};
-    }
-
-    const apiPromises = [
-      nestenService.fetchAllIncomingInvoices({ 
-        lastSyncDate: userInvoices.lastFetchDate?.incomingInvoices 
-      }).then(data => ({ type: 'incoming', data })).catch(error => ({ type: 'incoming', error: error.message })),
-      
-      nestenService.fetchAllOutgoingInvoices({ 
-        lastSyncDate: userInvoices.lastFetchDate?.outgoingInvoices 
-      }).then(data => ({ type: 'outgoing', data })).catch(error => ({ type: 'outgoing', error: error.message })),
-      
-      nestenService.fetchAllDraftInvoices().then(data => ({ type: 'drafts', data })).catch(error => ({ type: 'drafts', error: error.message })),
-      
-      nestenService.fetchAllEArchiveInvoices({ 
-        lastSyncDate: userInvoices.lastFetchDate?.eArchiveInvoices 
-      }).then(data => ({ type: 'eArchive', data })).catch(error => ({ type: 'eArchive', error: error.message })),
-      
-      nestenService.fetchAllEArchiveDraftInvoices().then(data => ({ type: 'eArchiveDrafts', data })).catch(error => ({ type: 'eArchiveDrafts', error: error.message }))
-    ];
-
-    const apiResults = await Promise.all(apiPromises);
-
-    for (const result of apiResults) {
-      const { type, data, error } = result;
-      
-      if (error) {
-        results[type].error = error;
-        continue;
-      }
-
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        continue;
-      }
-
-      results[type].fetched = data.length;
-
-      let targetArray, existingUuids;
-      
-      switch (type) {
-        case 'incoming':
-          targetArray = userInvoices.eFatura.incoming;
-          existingUuids = new Set(targetArray.map(inv => inv.uuid || inv.id).filter(Boolean));
-          userInvoices.lastFetchDate.incomingInvoices = new Date();
-          break;
-          
-        case 'outgoing':
-          targetArray = userInvoices.eFatura.outgoing;
-          existingUuids = new Set(targetArray.map(inv => inv.uuid || inv.id).filter(Boolean));
-          userInvoices.lastFetchDate.outgoingInvoices = new Date();
-          break;
-          
-        case 'drafts':
-          targetArray = userInvoices.eFatura.outgoingDraft;
-          existingUuids = new Set(targetArray.map(inv => inv.uuid || inv.id).filter(Boolean));
-          userInvoices.lastFetchDate.draftInvoices = new Date();
-          break;
-          
-        case 'eArchive':
-          targetArray = userInvoices.eArchive.outgoing;
-          existingUuids = new Set(targetArray.map(inv => inv.uuid || inv.id).filter(Boolean));
-          userInvoices.lastFetchDate.eArchiveInvoices = new Date();
-          break;
-          
-        case 'eArchiveDrafts':
-          targetArray = userInvoices.eArchive.outgoingDraft;
-          existingUuids = new Set(targetArray.map(inv => inv.uuid || inv.id).filter(Boolean));
-          userInvoices.lastFetchDate.eArchiveDraftInvoices = new Date();
-          break;
-      }
-
-      for (const invoiceData of data) {
-        const uuid = invoiceData.uuid || invoiceData.id;
-        if (!uuid) continue;
-
-        // NES fatura ID'sini explicit olarak ekle
-        const processedInvoiceData = {
-          ...invoiceData,
-          nesInvoiceId: uuid // NES API'den gelen benzersiz ID
-        };
-
-        if (existingUuids.has(uuid)) {
-          const index = targetArray.findIndex(inv => (inv.uuid || inv.id) === uuid);
-          if (index !== -1) {
-            targetArray[index] = processedInvoiceData;
-            results[type].updated++;
-          }
-        } else {
-          targetArray.push(processedInvoiceData);
-          results[type].new++;
-        }
-      }
-
-    }
+    // Sadece istatistiği güncelle
+    userInvoices.statistics = {
+      toplamTutar: Math.round(toplamTutar * 100) / 100,
+      gelenTutar: Math.round(gelenTutar * 100) / 100,
+      gidenTutar: Math.round(gidenTutar * 100) / 100,
+      karZarar: Math.round(karZarar * 100) / 100,
+      toplamMiktar: gelenFaturalar.length + gidenFaturalar.length,
+      gelenMiktar: gelenFaturalar.length,
+      gidenMiktar: gidenFaturalar.length,
+      taslakMiktar: taslakFaturalar.length,
+      lastCalculated: new Date()
+    };
 
     await userInvoices.save();
 
-    const totalFetched = 
-      results.incoming.fetched + 
-      results.outgoing.fetched + 
-      results.drafts.fetched + 
-      results.eArchive.fetched + 
-      results.eArchiveDrafts.fetched;
-
-    const totalNew = 
-      results.incoming.new + 
-      results.outgoing.new + 
-      results.drafts.new + 
-      results.eArchive.new + 
-      results.eArchiveDrafts.new;
-
-    const totalUpdated = 
-      results.incoming.updated + 
-      results.outgoing.updated + 
-      results.drafts.updated + 
-      results.eArchive.updated + 
-      results.eArchiveDrafts.updated;
-
-    const errors = Object.entries(results)
-      .filter(([_, result]) => result.error)
-      .map(([type, result]) => ({ type, error: result.error }));
-
     res.status(200).json({
       success: true,
-      message: 'Faturalar başarıyla senkronize edildi.',
+      message: 'İstatistikler başarıyla hesaplandı ve kaydedildi.',
+      statistics: userInvoices.statistics,
       summary: {
-        totalFetched,
-        totalNew,
-        totalUpdated,
-        finalTotal: userInvoices.toplamFatura
-      },
-      details: results,
-      errors: errors.length > 0 ? errors : undefined,
-      lastFetchDate: userInvoices.lastFetchDate
+        totalProcessed: gelenFaturalar.length + gidenFaturalar.length + taslakFaturalar.length,
+        incoming: gelenFaturalar.length,
+        outgoing: gidenFaturalar.length,
+        drafts: taslakFaturalar.length
+      }
     });
 
   } catch (error) {
-    console.error('Tüm faturalar çekilirken genel hata:', error);
+    console.error('İstatistik hesaplama sırasında hata:', error);
     res.status(500).json({
       success: false,
-      error: 'Tüm faturalar çekilirken bir hata oluştu.',
+      error: 'İstatistik hesaplama sırasında bir hata oluştu.',
       message: error.message
     });
   }
 }
 
-
-async function getAllInvoicesForStats(req, res) {
+async function getAllInvoicesLive(req, res) {
   try {
     const userId = req.userId;
+    const { page = 1, pageSize = 100, sort = 'CreatedAt desc', ...otherParams } = req.query;
     
-    const userInvoices = await UserInvoices.findOne({ userId });
-    if (!userInvoices) {
-      return res.status(200).json({
-        invoices: [],
-        totalCount: 0,
-        summary: {
-          incoming: { count: 0, totalAmount: 0 },
-          outgoing: { count: 0, totalAmount: 0 },
-          total: { count: 0, totalAmount: 0 }
-        }
+    const user = await User.findById(userId);
+    if (!user || !user.nesApiKey) {
+      return res.status(400).json({ 
+        error: 'NES API anahtarı bulunamadı. Lütfen önce API anahtarınızı kaydedin.' 
       });
     }
 
-    const gelenFaturalar = [
-      ...(userInvoices.eFatura.incoming || []).map(inv => ({...inv, type: 'incoming'})),
-      ...(userInvoices.eArchive.incoming || []).map(inv => ({...inv, type: 'incoming'}))
-    ];
+    const nestenService = new NestenService(user.nesApiKey);
+    
+    // Tüm endpoint'lere ayrı ayrı istek at
+    const params = {
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      sort,
+      ...otherParams
+    };
 
-    const gidenFaturalar = [
-      ...(userInvoices.eFatura.outgoing || []).map(inv => ({...inv, type: 'outgoing'})),
-      ...(userInvoices.eArchive.outgoing || []).map(inv => ({...inv, type: 'outgoing'}))
-    ];
+    const [incomingInvoices, outgoingInvoices, eArchiveInvoices] = await Promise.all([
+      nestenService.fetchAllIncomingInvoices(otherParams).catch(() => []),
+      nestenService.fetchAllOutgoingInvoices(otherParams).catch(() => []),
+      nestenService.fetchAllEArchiveInvoices(otherParams).catch(() => [])
+    ]);
 
+    // Gelen faturaları
+    const gelenFaturalar = (incomingInvoices || []).map(inv => ({...inv, type: 'incoming'}));
+    
+    // Giden faturaları (outgoing + eArchive)
+    const outgoingMapped = (outgoingInvoices || []).map(inv => ({...inv, type: 'outgoing'}));
+    const eArchiveMapped = (eArchiveInvoices || []).map(inv => ({...inv, type: 'outgoing'}));
+    const gidenFaturalar = [...outgoingMapped, ...eArchiveMapped];
+
+    // Hepsini birleştir
     const tumFaturalar = [...gelenFaturalar, ...gidenFaturalar];
+
+    // Tarihsel sırala (yeniden eskiye)
+    tumFaturalar.sort((a, b) => {
+      const dateA = new Date(a.issueDate || a.createDate || 0);
+      const dateB = new Date(b.issueDate || b.createDate || 0);
+      return dateB - dateA;
+    });
 
     const gelenTutar = gelenFaturalar.reduce((sum, invoice) => {
       const amount = parseFloat(invoice.payableAmount || 0);
@@ -311,15 +173,10 @@ async function getAllInvoicesForStats(req, res) {
 
     const toplamTutar = gelenTutar + gidenTutar;
 
-    tumFaturalar.sort((a, b) => {
-      const dateA = new Date(a.issueDate || a.createDate || 0);
-      const dateB = new Date(b.issueDate || b.createDate || 0);
-      return dateB - dateA;
-    });
-
     res.status(200).json({
       invoices: tumFaturalar,
       totalCount: tumFaturalar.length,
+      currentPage: parseInt(page),
       summary: {
         incoming: {
           count: gelenFaturalar.length,
@@ -345,97 +202,152 @@ async function getAllInvoicesForStats(req, res) {
   }
 }
 
+async function getIncomingInvoicesLive(req, res) {
+  try {
+    const userId = req.userId;
+    const { page = 1, pageSize = 100, sort = 'CreatedAt desc', ...otherParams } = req.query;
+    
+    const user = await User.findById(userId);
+    if (!user || !user.nesApiKey) {
+      return res.status(400).json({ 
+        error: 'NES API anahtarı bulunamadı. Lütfen önce API anahtarınızı kaydedin.' 
+      });
+    }
+
+    const nestenService = new NestenService(user.nesApiKey);
+    
+    // TÜM gelen faturaları çek
+    const invoices = await nestenService.fetchAllIncomingInvoices({ 
+      sort,
+      ...otherParams 
+    });
+    
+    if (!invoices || !Array.isArray(invoices)) {
+      return res.status(200).json({
+        invoices: [],
+        totalCount: 0,
+        totalAmount: 0
+      });
+    }
+    
+    const totalAmount = invoices.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.payableAmount || 0);
+      return sum + amount;
+    }, 0);
+
+    res.status(200).json({
+      invoices: invoices,
+      totalCount: invoices.length,
+      totalAmount: Math.round(totalAmount * 100) / 100
+    });
+
+  } catch (error) {
+    console.error('Gelen faturalar getirilirken hata:', error);
+    res.status(500).json({
+      error: 'Gelen faturalar getirilirken hata oluştu.',
+      message: error.message
+    });
+  }
+}
+
+async function getOutgoingInvoicesLive(req, res) {
+  try {
+    const userId = req.userId;
+    const { page = 1, pageSize = 100, sort = 'CreatedAt desc', ...otherParams } = req.query;
+    
+    const user = await User.findById(userId);
+    if (!user || !user.nesApiKey) {
+      return res.status(400).json({ 
+        error: 'NES API anahtarı bulunamadı. Lütfen önce API anahtarınızı kaydedin.' 
+      });
+    }
+
+    const nestenService = new NestenService(user.nesApiKey);
+    
+    // Giden faturaları çek (outgoing + eArchive birleştir)
+    const params = {
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      sort,
+      ...otherParams
+    };
+
+    const [outgoingInvoices, eArchiveInvoices] = await Promise.all([
+      nestenService.fetchAllOutgoingInvoices(otherParams).catch(() => []),
+      nestenService.fetchAllEArchiveInvoices(otherParams).catch(() => [])
+    ]);
+    
+    // Birleştir ve tarihsel sırala
+    const allInvoices = [...(outgoingInvoices || []), ...(eArchiveInvoices || [])];
+    
+    allInvoices.sort((a, b) => {
+      const dateA = new Date(a.issueDate || a.createDate || 0);
+      const dateB = new Date(b.issueDate || b.createDate || 0);
+      return dateB - dateA;
+    });
+
+    const totalAmount = allInvoices.reduce((sum, invoice) => {
+      const amount = parseFloat(invoice.payableAmount || 0);
+      return sum + amount;
+    }, 0);
+
+    res.status(200).json({
+      invoices: allInvoices,
+      totalCount: allInvoices.length,
+      totalAmount: Math.round(totalAmount * 100) / 100
+    });
+
+  } catch (error) {
+    console.error('Giden faturalar getirilirken hata:', error);
+    res.status(500).json({
+      error: 'Giden faturalar getirilirken hata oluştu.',
+      message: error.message
+    });
+  }
+}
+
 async function getUserStatistics(req, res) {
   try {
     const userId = req.userId;
     
     const userInvoices = await UserInvoices.findOne({ userId });
-    if (!userInvoices) {
+    if (!userInvoices || !userInvoices.statistics) {
       return res.status(200).json({
-        message: 'Henüz fatura verisi bulunamadı.',
+        message: 'Henüz istatistik hesaplanmamış. Lütfen önce fetch-all çalıştırın.',
         statistics: {
           toplamTutar: 0,
           gelenTutar: 0,
           gidenTutar: 0,
-          toplaMiktar: 0,
+          toplamMiktar: 0,
           karZarar: 0,
           gelenMiktar: 0,
-          gidenMiktar: 0
+          gidenMiktar: 0,
+          taslakMiktar: 0
         }
       });
     }
 
-    // Gelen faturalar (incoming)
-    const gelenFaturalar = [
-      ...(userInvoices.eFatura.incoming || []),
-      ...(userInvoices.eArchive.incoming || [])
-    ];
-
-    // Giden faturalar (outgoing)
-    const gidenFaturalar = [
-      ...(userInvoices.eFatura.outgoing || []),
-      ...(userInvoices.eArchive.outgoing || [])
-    ];
-
-    // Taslak faturalar (drafts) - hesaplamalara dahil edilmeyecek
-    const taslakFaturalar = [
-      ...(userInvoices.eFatura.incomingDraft || []),
-      ...(userInvoices.eFatura.outgoingDraft || []),
-      ...(userInvoices.eArchive.incomingDraft || []),
-      ...(userInvoices.eArchive.outgoingDraft || [])
-    ];
-
-    // Gelen toplam tutar
-    const gelenTutar = gelenFaturalar.reduce((sum, invoice) => {
-      const amount = parseFloat(invoice.payableAmount || 0);
-      return sum + amount;
-    }, 0);
-
-    // Giden toplam tutar
-    const gidenTutar = gidenFaturalar.reduce((sum, invoice) => {
-      const amount = parseFloat(invoice.payableAmount || 0);
-      return sum + amount;
-    }, 0);
-
-    // Toplam tutar (gelen + giden)
-    const toplamTutar = gelenTutar + gidenTutar;
-
-    // Kar/Zarar (gelen - giden)
-    const karZarar = gelenTutar - gidenTutar;
-
-    // Miktar sayıları
-    const gelenMiktar = gelenFaturalar.length;
-    const gidenMiktar = gidenFaturalar.length;
-    const toplamMiktar = gelenMiktar + gidenMiktar;
+    const stats = userInvoices.statistics;
 
     res.status(200).json({
       success: true,
-      statistics: {
-        toplamTutar: Math.round(toplamTutar * 100) / 100,
-        gelenTutar: Math.round(gelenTutar * 100) / 100,
-        gidenTutar: Math.round(gidenTutar * 100) / 100,
-        karZarar: Math.round(karZarar * 100) / 100,
-        toplamMiktar,
-        gelenMiktar,
-        gidenMiktar,
-        taslakMiktar: taslakFaturalar.length
-      },
+      statistics: stats,
       summary: {
         gelenFaturalar: {
-          miktar: gelenMiktar,
-          tutar: Math.round(gelenTutar * 100) / 100,
-          ortalama: gelenMiktar > 0 ? Math.round((gelenTutar / gelenMiktar) * 100) / 100 : 0
+          miktar: stats.gelenMiktar,
+          tutar: stats.gelenTutar,
+          ortalama: stats.gelenMiktar > 0 ? Math.round((stats.gelenTutar / stats.gelenMiktar) * 100) / 100 : 0
         },
         gidenFaturalar: {
-          miktar: gidenMiktar,
-          tutar: Math.round(gidenTutar * 100) / 100,
-          ortalama: gidenMiktar > 0 ? Math.round((gidenTutar / gidenMiktar) * 100) / 100 : 0
+          miktar: stats.gidenMiktar,
+          tutar: stats.gidenTutar,
+          ortalama: stats.gidenMiktar > 0 ? Math.round((stats.gidenTutar / stats.gidenMiktar) * 100) / 100 : 0
         },
         taslakFaturalar: {
-          miktar: taslakFaturalar.length
+          miktar: stats.taslakMiktar
         }
       },
-      lastUpdated: new Date().toISOString()
+      lastCalculated: stats.lastCalculated
     });
 
   } catch (error) {
@@ -449,8 +361,8 @@ async function getUserStatistics(req, res) {
 
 export { 
   fetchAllInvoices,
-  getIncomingInvoicesForStats,
-  getOutgoingInvoicesForStats,
-  getAllInvoicesForStats,
+  getAllInvoicesLive,
+  getIncomingInvoicesLive,
+  getOutgoingInvoicesLive,
   getUserStatistics
-}; 
+};

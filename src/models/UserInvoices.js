@@ -28,6 +28,19 @@ const UserInvoicesSchema = new mongoose.Schema({
     eArchiveDraftInvoices: { type: Date }
   },
   
+  // Hesaplanmış istatistikler
+  statistics: {
+    toplamTutar: { type: Number, default: 0 },
+    gelenTutar: { type: Number, default: 0 },
+    gidenTutar: { type: Number, default: 0 },
+    karZarar: { type: Number, default: 0 },
+    toplamMiktar: { type: Number, default: 0 },
+    gelenMiktar: { type: Number, default: 0 },
+    gidenMiktar: { type: Number, default: 0 },
+    taslakMiktar: { type: Number, default: 0 },
+    lastCalculated: { type: Date }
+  },
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
